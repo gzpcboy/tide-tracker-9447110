@@ -112,6 +112,9 @@ test.describe('Tide Tracker', () => {
     // Not today: pill hidden, full list shown with every hi/lo moment.
     await expect(page.locator('#todayPill')).toBeHidden();
     await expect(page.locator('.full-list')).toBeVisible();
+    // Heading is followed by the formatted date of the viewed day (2026-06-27).
+    await expect(page.locator('.full-list h2')).toContainText('All tides for');
+    await expect(page.locator('.full-list h2')).toContainText('June 27, 2026');
     await expect(page.locator('.tide-row')).toHaveCount(4);
 
     const rows = page.locator('.tide-row');
