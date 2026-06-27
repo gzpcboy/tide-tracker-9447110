@@ -22,7 +22,6 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       background:
-        /* sunlit shallows + deep pools */
         radial-gradient(60% 45% at 18% 22%, rgba(94, 234, 212, 0.30), transparent 60%),
         radial-gradient(55% 40% at 82% 30%, rgba(45, 212, 191, 0.22), transparent 62%),
         radial-gradient(70% 55% at 30% 80%, rgba(20, 132, 160, 0.45), transparent 65%),
@@ -36,7 +35,6 @@
       position: relative;
       overflow-x: hidden;
     }
-    /* Caustics / rippling light over the tide pool */
     body::before {
       content: "";
       position: fixed;
@@ -54,10 +52,9 @@
       animation: caustics 16s ease-in-out infinite alternate;
     }
     @keyframes caustics {
-      0%   { transform: translate3d(0, 0, 0) scale(1); }
+      0% { transform: translate3d(0, 0, 0) scale(1); }
       100% { transform: translate3d(-14px, -10px, 0) scale(1.06); }
     }
-    /* Floating bubbles rising through the pool */
     .bubbles { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
     .bubbles span {
       position: absolute;
@@ -68,9 +65,9 @@
       animation: rise linear infinite;
     }
     @keyframes rise {
-      0%   { transform: translateY(0) translateX(0); opacity: 0; }
-      10%  { opacity: 0.8; }
-      90%  { opacity: 0.7; }
+      0% { transform: translateY(0) translateX(0); opacity: 0; }
+      10% { opacity: 0.8; }
+      90% { opacity: 0.7; }
       100% { transform: translateY(-108vh) translateX(20px); opacity: 0; }
     }
     .wave {
@@ -169,6 +166,69 @@
       grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
+    .hero-card {
+      margin-bottom: 14px;
+      padding: 22px 20px;
+    }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -35% 35%;
+      height: 140px;
+      background: radial-gradient(circle, rgba(79, 209, 197, 0.28), transparent 65%);
+      pointer-events: none;
+    }
+    .hero-card .eyebrow {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .hero-card .current-line {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .hero-card .current-height {
+      font-size: 2.5rem;
+      line-height: 1;
+      font-weight: 800;
+    }
+    .hero-card .trend {
+      font-size: 0.98rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .hero-card .summary {
+      margin-top: 12px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .hero-card .meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .hero-card .progress {
+      margin-top: 14px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .hero-card .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(79, 209, 197, 0.45), rgba(94, 234, 212, 0.95));
+      box-shadow: 0 0 20px rgba(94, 234, 212, 0.35);
+    }
     .card {
       background: var(--glass);
       border: 1px solid var(--glass-border);
@@ -252,6 +312,8 @@
     footer.station-footer a:hover { background: rgba(255,255,255,0.16); }
     .hidden { display: none !important; }
     @media (max-width: 420px) {
+      .cards { grid-template-columns: 1fr; }
+      .hero-card .current-height { font-size: 2.1rem; }
       .card .time { font-size: 1.55rem; }
     }
   </style>
@@ -308,7 +370,6 @@
     function ymdCompact(s) { return s.replace(/-/g, ""); }
     function todayYMD() { return toYMD(new Date()); }
 
-    // Parse "YYYY-MM-DD HH:MM" as a local Date.
     function parseApiTime(t) {
       const [datePart, timePart] = t.split(" ");
       const [y, mo, d] = datePart.split("-").map(Number);
@@ -326,13 +387,20 @@
 
     function formatHeight(v) {
       const n = parseFloat(v);
-      return (n >= 0 ? n.toFixed(1) : n.toFixed(1)) + " ft";
+      return n.toFixed(1) + " ft";
     }
 
     function formatLongDate(ymd) {
       const d = parseApiTime(ymd + " 12:00");
       return d.toLocaleDateString(undefined, {
         weekday: "long", month: "long", day: "numeric", year: "numeric",
+      });
+    }
+
+    function formatAsOf(date) {
+      return date.toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
       });
     }
 
@@ -347,8 +415,44 @@
       return "in " + h + " hr " + m + " min";
     }
 
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function estimateCurrentTide(tides, now) {
+      let prev = null;
+      let next = null;
+
+      for (const tide of tides) {
+        if (tide.date <= now) prev = tide;
+        if (!next && tide.date > now) next = tide;
+      }
+
+      if (!prev || !next) return null;
+
+      const totalMs = next.date - prev.date;
+      if (totalMs <= 0) return null;
+
+      const progress = clamp((now - prev.date) / totalMs, 0, 1);
+      const start = parseFloat(prev.height);
+      const end = parseFloat(next.height);
+      const swing = (1 - Math.cos(Math.PI * progress)) / 2;
+      const height = start + (end - start) * swing;
+      const trend = end > start ? "Rising" : "Falling";
+      const nextLabel = next.type === "H" ? "high" : "low";
+
+      return {
+        prev,
+        next,
+        trend,
+        height,
+        progress,
+        summary: trend + " toward " + nextLabel + " tide",
+      };
+    }
+
     function setStatus(msg, isError) {
-      content.innerHTML = '<div class="status' + (isError ? " error" : "") +
+      content.innerHTML = '<div class="status' + (isError ? ' error' : '') +
         '" id="statusMsg">' + msg + "</div>";
     }
 
@@ -360,32 +464,33 @@
         const s = data.stations && data.stations[0];
         if (s && s.name) {
           stationNameEl.textContent = s.name +
-            (s.state ? ", " + s.state : "") + " · Station " + STATION_ID;
+            (s.state ? ', ' + s.state : '') + ' · Station ' + STATION_ID;
         }
-      } catch (e) { /* keep default */ }
+      } catch (e) { }
     }
 
     async function fetchTides(ymd) {
       const compact = ymdCompact(ymd);
       const url = API_BASE +
-        "?product=predictions&application=tide-tracker&datum=MLLW&station=" + STATION_ID +
-        "&time_zone=lst_ldt&units=english&interval=hilo&format=json" +
-        "&begin_date=" + compact + "&end_date=" + compact;
+        '?product=predictions&application=tide-tracker&datum=MLLW&station=' + STATION_ID +
+        '&time_zone=lst_ldt&units=english&interval=hilo&format=json' +
+        '&begin_date=' + compact + '&end_date=' + compact;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("NOAA API returned " + res.status);
+      if (!res.ok) throw new Error('NOAA API returned ' + res.status);
       const data = await res.json();
-      if (data.error) throw new Error(data.error.message || "API error");
+      if (data.error) throw new Error(data.error.message || 'API error');
       return (data.predictions || []).map(p => ({
         date: parseApiTime(p.t),
         height: p.v,
-        type: p.type, // "H" or "L"
+        type: p.type,
       }));
     }
 
     function renderTodayView(tides) {
       const now = new Date();
-      const nextHigh = tides.find(t => t.type === "H" && t.date > now);
-      const nextLow = tides.find(t => t.type === "L" && t.date > now);
+      const nextHigh = tides.find(t => t.type === 'H' && t.date > now);
+      const nextLow = tides.find(t => t.type === 'L' && t.date > now);
+      const current = estimateCurrentTide(tides, now);
 
       function cardHtml(kind, label, tide) {
         if (!tide) {
@@ -402,84 +507,106 @@
           '<div class="rel">' + relativeFromNow(tide.date) + '</div></div>';
       }
 
-      content.innerHTML = '<div class="cards">' +
-        cardHtml("low", "Next Low Tide", nextLow) +
-        cardHtml("high", "Next High Tide", nextHigh) +
-        "</div>";
+      const currentHtml = current
+        ? '<section class="card hero-card" id="currentTideCard" data-state="value">' +
+          '<div class="eyebrow">Current tide</div>' +
+          '<div class="current-line">' +
+            '<div class="current-height">' + current.height.toFixed(1) + ' ft</div>' +
+            '<div class="trend">' + current.trend + '</div>' +
+          '</div>' +
+          '<div class="summary">' + current.summary + '</div>' +
+          '<div class="meta">' +
+            '<span>As of ' + formatAsOf(now) + '</span>' +
+            '<span>Next turn ' + relativeFromNow(current.next.date) + '</span>' +
+          '</div>' +
+          '<div class="progress" aria-hidden="true"><span style="width:' + Math.round(current.progress * 100) + '%"></span></div>' +
+        '</section>'
+        : '<section class="card hero-card" id="currentTideCard" data-state="none">' +
+          '<div class="eyebrow">Current tide</div>' +
+          '<div class="current-line"><div class="current-height">--</div></div>' +
+          '<div class="summary">Current tide estimate becomes available once we have both the previous and next tide turn.</div>' +
+          '<div class="meta"><span>As of ' + formatAsOf(now) + '</span></div>' +
+        '</section>';
+
+      content.innerHTML = currentHtml + '<div class="cards">' +
+        cardHtml('low', 'Next Low Tide', nextLow) +
+        cardHtml('high', 'Next High Tide', nextHigh) +
+        '</div>';
     }
 
     function renderFullView(tides, ymd) {
       if (!tides.length) {
-        setStatus("No tide predictions available for this date.");
+        setStatus('No tide predictions available for this date.');
         return;
       }
-      let rows = "";
+      let rows = '';
       for (const t of tides) {
         const f = formatTime(t.date);
-        const kind = t.type === "H" ? "high" : "low";
-        const word = t.type === "H" ? "High" : "Low";
+        const kind = t.type === 'H' ? 'high' : 'low';
+        const word = t.type === 'H' ? 'High' : 'Low';
         rows += '<div class="tide-row" data-kind="' + kind + '">' +
           '<span class="badge ' + kind + '">' + word + '</span>' +
-          '<span class="r-time">' + f.time + " " + f.ampm + '</span>' +
-          '<span class="r-height">' + formatHeight(t.height) + "</span></div>";
+          '<span class="r-time">' + f.time + ' ' + f.ampm + '</span>' +
+          '<span class="r-height">' + formatHeight(t.height) + '</span></div>';
       }
       content.innerHTML = '<div class="full-list"><h2>All tides for ' +
-        formatLongDate(ymd) + '</h2>' + rows + "</div>";
+        formatLongDate(ymd) + '</h2>' + rows + '</div>';
     }
 
     async function render() {
       const selected = datePicker.value;
       const isToday = selected === todayYMD();
-      todayPill.classList.toggle("hidden", !isToday);
+      todayPill.classList.toggle('hidden', !isToday);
 
       if (isToday) {
-        todayLink.innerHTML = "";
+        todayLink.innerHTML = '';
       } else {
         todayLink.innerHTML = '<button id="jumpToday">↺ Back to today</button>';
-        document.getElementById("jumpToday").addEventListener("click", () => {
+        document.getElementById('jumpToday').addEventListener('click', () => {
           datePicker.value = todayYMD();
           render();
         });
       }
 
-      setStatus("Loading tide data…");
+      setStatus('Loading tide data…');
       try {
         const tides = await fetchTides(selected);
         if (isToday) renderTodayView(tides);
         else renderFullView(tides, selected);
       } catch (e) {
-        setStatus("Could not load tide data: " + e.message, true);
+        setStatus('Could not load tide data: ' + e.message, true);
       }
     }
 
     function shiftDay(delta) {
-      const d = parseApiTime(datePicker.value + " 12:00");
+      const d = parseApiTime(datePicker.value + ' 12:00');
       d.setDate(d.getDate() + delta);
       datePicker.value = toYMD(d);
       render();
     }
 
-    prevBtn.addEventListener("click", () => shiftDay(-1));
-    nextBtn.addEventListener("click", () => shiftDay(1));
-    datePicker.addEventListener("change", render);
+    prevBtn.addEventListener('click', () => shiftDay(-1));
+    nextBtn.addEventListener('click', () => shiftDay(1));
+    datePicker.addEventListener('change', render);
 
-    // Init
     datePicker.value = todayYMD();
     fetchStationName();
     render();
+    setInterval(() => {
+      if (datePicker.value === todayYMD()) render();
+    }, 60000);
 
-    // Generate rising tide-pool bubbles.
     (function spawnBubbles() {
-      const container = document.getElementById("bubbles");
+      const container = document.getElementById('bubbles');
       const count = 18;
       for (let i = 0; i < count; i++) {
-        const b = document.createElement("span");
+        const b = document.createElement('span');
         const size = 4 + Math.random() * 16;
-        b.style.width = size + "px";
-        b.style.height = size + "px";
-        b.style.left = Math.random() * 100 + "vw";
-        b.style.animationDuration = (9 + Math.random() * 12) + "s";
-        b.style.animationDelay = (-Math.random() * 12) + "s";
+        b.style.width = size + 'px';
+        b.style.height = size + 'px';
+        b.style.left = Math.random() * 100 + 'vw';
+        b.style.animationDuration = (9 + Math.random() * 12) + 's';
+        b.style.animationDelay = (-Math.random() * 12) + 's';
         container.appendChild(b);
       }
     })();
