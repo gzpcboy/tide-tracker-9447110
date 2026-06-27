@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tide Tracker · Station 9447110</title>
+  <style>
+    :root {
+      --bg-top: #0a2540;
+      --bg-bottom: #18608f;
+      --accent: #4fd1c5;
+      --high: #5eead4;
+      --low: #fbbf24;
+      --glass: rgba(255, 255, 255, 0.10);
+      --glass-border: rgba(255, 255, 255, 0.22);
+      --text: #eaf6ff;
+      --muted: #a8c6dd;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      background-attachment: fixed;
+      display: flex;
+      justify-content: center;
+      padding: 28px 16px 60px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 220px;
+      background:
+        radial-gradient(120% 100% at 50% 100%, rgba(79, 209, 197, 0.25), transparent 70%);
+      pointer-events: none;
+    }
+    .wave {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 130px; opacity: 0.35; pointer-events: none;
+    }
+    .wave path { fill: var(--accent); }
+    .app {
+      width: 100%;
+      max-width: 560px;
+      z-index: 2;
+    }
+    header.title {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    header.title h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    header.title .station {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .date-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 10px 12px;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+    .nav-btn {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, transform .1s;
+      flex: 0 0 auto;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.22); }
+    .nav-btn:active { transform: scale(0.94); }
+    .date-center {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .date-center input[type="date"] {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      color-scheme: dark;
+      cursor: pointer;
+    }
+    .today-pill {
+      font-size: 0.72rem;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--bg-top);
+      background: var(--accent);
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .today-pill.hidden { visibility: hidden; }
+    .today-link {
+      text-align: center;
+      margin-bottom: 18px;
+      min-height: 20px;
+    }
+    .today-link button {
+      background: none; border: none; color: var(--accent);
+      cursor: pointer; font-size: 0.88rem; text-decoration: underline;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 18px;
+      padding: 20px 18px;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+      position: relative;
+      overflow: hidden;
+    }
+    .card .label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 7px;
+      margin-bottom: 10px;
+    }
+    .card .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .card.high .dot { background: var(--high); box-shadow: 0 0 10px var(--high); }
+    .card.low .dot { background: var(--low); box-shadow: 0 0 10px var(--low); }
+    .card .time {
+      font-size: 1.9rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .card .ampm { font-size: 1rem; font-weight: 600; color: var(--muted); margin-left: 4px; }
+    .card .height { margin-top: 8px; color: var(--muted); font-size: 0.9rem; }
+    .card .rel { margin-top: 4px; font-size: 0.8rem; color: var(--accent); }
+    .card .none { font-size: 1.9rem; font-weight: 700; color: var(--muted); }
+
+    .full-list {
+      margin-top: 4px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 18px;
+      padding: 8px 6px;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+    }
+    .full-list h2 {
+      font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--muted); padding: 10px 14px 8px; font-weight: 600;
+    }
+    .tide-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+    }
+    .tide-row + .tide-row { border-top: 1px solid rgba(255,255,255,0.08); }
+    .tide-row .badge {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 999px; letter-spacing: 0.5px;
+      flex: 0 0 auto; width: 56px; text-align: center;
+    }
+    .tide-row .badge.high { background: rgba(94,234,212,0.18); color: var(--high); }
+    .tide-row .badge.low { background: rgba(251,191,36,0.18); color: var(--low); }
+    .tide-row .r-time { font-size: 1.15rem; font-weight: 700; flex: 1 1 auto; }
+    .tide-row .r-height { color: var(--muted); font-size: 0.92rem; }
+
+    .status { text-align: center; color: var(--muted); padding: 30px 0; font-size: 0.95rem; }
+    .status.error { color: #ff9b9b; }
+
+    footer.station-footer {
+      margin-top: 26px;
+      text-align: center;
+    }
+    footer.station-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.9rem;
+      border: 1px solid var(--glass-border);
+      padding: 9px 16px;
+      border-radius: 999px;
+      background: var(--glass);
+      display: inline-flex; align-items: center; gap: 8px;
+      transition: background .15s;
+    }
+    footer.station-footer a:hover { background: rgba(255,255,255,0.16); }
+    .hidden { display: none !important; }
+    @media (max-width: 420px) {
+      .card .time { font-size: 1.55rem; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="wave" viewBox="0 0 1440 130" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,64 C240,120 480,8 720,40 C960,72 1200,128 1440,72 L1440,130 L0,130 Z"></path>
+  </svg>
+
+  <main class="app">
+    <header class="title">
+      <h1><span aria-hidden="true">🌊</span> Tide Tracker</h1>
+      <div class="station" id="stationName">Station 9447110</div>
+    </header>
+
+    <div class="date-bar">
+      <button class="nav-btn" id="prevDay" title="Previous day" aria-label="Previous day">‹</button>
+      <div class="date-center">
+        <input type="date" id="datePicker" aria-label="Select date" />
+        <span class="today-pill" id="todayPill">Today</span>
+      </div>
+      <button class="nav-btn" id="nextDay" title="Next day" aria-label="Next day">›</button>
+    </div>
+
+    <div class="today-link" id="todayLink"></div>
+
+    <div id="content"></div>
+
+    <footer class="station-footer">
+      <a id="stationHomeLink"
+         href="https://tidesandcurrents.noaa.gov/stationhome.html?id=9447110#info"
+         target="_blank" rel="noopener">
+        📍 View station home on NOAA Tides &amp; Currents
+      </a>
+    </footer>
+  </main>
+
+  <script>
+    const STATION_ID = "9447110";
+    const API_BASE = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
+    const MD_API = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/" + STATION_ID + ".json";
+
+    const datePicker = document.getElementById("datePicker");
+    const prevBtn = document.getElementById("prevDay");
+    const nextBtn = document.getElementById("nextDay");
+    const todayPill = document.getElementById("todayPill");
+    const todayLink = document.getElementById("todayLink");
+    const content = document.getElementById("content");
+    const stationNameEl = document.getElementById("stationName");
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function toYMD(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+    function ymdCompact(s) { return s.replace(/-/g, ""); }
+    function todayYMD() { return toYMD(new Date()); }
+
+    // Parse "YYYY-MM-DD HH:MM" as a local Date.
+    function parseApiTime(t) {
+      const [datePart, timePart] = t.split(" ");
+      const [y, mo, d] = datePart.split("-").map(Number);
+      const [h, mi] = timePart.split(":").map(Number);
+      return new Date(y, mo - 1, d, h, mi);
+    }
+
+    function formatTime(date) {
+      let h = date.getHours();
+      const m = pad(date.getMinutes());
+      const ampm = h >= 12 ? "PM" : "AM";
+      h = h % 12; if (h === 0) h = 12;
+      return { time: h + ":" + m, ampm };
+    }
+
+    function formatHeight(v) {
+      const n = parseFloat(v);
+      return (n >= 0 ? n.toFixed(1) : n.toFixed(1)) + " ft";
+    }
+
+    function relativeFromNow(date) {
+      const diffMs = date - new Date();
+      const mins = Math.round(diffMs / 60000);
+      if (mins <= 0) return "now";
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h === 0) return "in " + m + " min";
+      if (m === 0) return "in " + h + " hr";
+      return "in " + h + " hr " + m + " min";
+    }
+
+    function setStatus(msg, isError) {
+      content.innerHTML = '<div class="status' + (isError ? " error" : "") +
+        '" id="statusMsg">' + msg + "</div>";
+    }
+
+    async function fetchStationName() {
+      try {
+        const res = await fetch(MD_API);
+        if (!res.ok) return;
+        const data = await res.json();
+        const s = data.stations && data.stations[0];
+        if (s && s.name) {
+          stationNameEl.textContent = s.name +
+            (s.state ? ", " + s.state : "") + " · Station " + STATION_ID;
+        }
+      } catch (e) { /* keep default */ }
+    }
+
+    async function fetchTides(ymd) {
+      const compact = ymdCompact(ymd);
+      const url = API_BASE +
+        "?product=predictions&application=tide-tracker&datum=MLLW&station=" + STATION_ID +
+        "&time_zone=lst_ldt&units=english&interval=hilo&format=json" +
+        "&begin_date=" + compact + "&end_date=" + compact;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("NOAA API returned " + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || "API error");
+      return (data.predictions || []).map(p => ({
+        date: parseApiTime(p.t),
+        height: p.v,
+        type: p.type, // "H" or "L"
+      }));
+    }
+
+    function renderTodayView(tides) {
+      const now = new Date();
+      const nextHigh = tides.find(t => t.type === "H" && t.date > now);
+      const nextLow = tides.find(t => t.type === "L" && t.date > now);
+
+      function cardHtml(kind, label, tide) {
+        if (!tide) {
+          return '<div class="card ' + kind + '" data-kind="' + kind + '" data-state="none">' +
+            '<div class="label"><span class="dot"></span>' + label + '</div>' +
+            '<div class="none">–</div>' +
+            '<div class="height">No more ' + kind + ' tide today</div></div>';
+        }
+        const f = formatTime(tide.date);
+        return '<div class="card ' + kind + '" data-kind="' + kind + '" data-state="value">' +
+          '<div class="label"><span class="dot"></span>' + label + '</div>' +
+          '<div class="time">' + f.time + '<span class="ampm">' + f.ampm + '</span></div>' +
+          '<div class="height">' + formatHeight(tide.height) + '</div>' +
+          '<div class="rel">' + relativeFromNow(tide.date) + '</div></div>';
+      }
+
+      content.innerHTML = '<div class="cards">' +
+        cardHtml("low", "Next Low Tide", nextLow) +
+        cardHtml("high", "Next High Tide", nextHigh) +
+        "</div>";
+    }
+
+    function renderFullView(tides) {
+      if (!tides.length) {
+        setStatus("No tide predictions available for this date.");
+        return;
+      }
+      let rows = "";
+      for (const t of tides) {
+        const f = formatTime(t.date);
+        const kind = t.type === "H" ? "high" : "low";
+        const word = t.type === "H" ? "High" : "Low";
+        rows += '<div class="tide-row" data-kind="' + kind + '">' +
+          '<span class="badge ' + kind + '">' + word + '</span>' +
+          '<span class="r-time">' + f.time + " " + f.ampm + '</span>' +
+          '<span class="r-height">' + formatHeight(t.height) + "</span></div>";
+      }
+      content.innerHTML = '<div class="full-list"><h2>All tides for this day</h2>' + rows + "</div>";
+    }
+
+    async function render() {
+      const selected = datePicker.value;
+      const isToday = selected === todayYMD();
+      todayPill.classList.toggle("hidden", !isToday);
+
+      if (isToday) {
+        todayLink.innerHTML = "";
+      } else {
+        todayLink.innerHTML = '<button id="jumpToday">↺ Back to today</button>';
+        document.getElementById("jumpToday").addEventListener("click", () => {
+          datePicker.value = todayYMD();
+          render();
+        });
+      }
+
+      setStatus("Loading tide data…");
+      try {
+        const tides = await fetchTides(selected);
+        if (isToday) renderTodayView(tides);
+        else renderFullView(tides);
+      } catch (e) {
+        setStatus("Could not load tide data: " + e.message, true);
+      }
+    }
+
+    function shiftDay(delta) {
+      const d = parseApiTime(datePicker.value + " 12:00");
+      d.setDate(d.getDate() + delta);
+      datePicker.value = toYMD(d);
+      render();
+    }
+
+    prevBtn.addEventListener("click", () => shiftDay(-1));
+    nextBtn.addEventListener("click", () => shiftDay(1));
+    datePicker.addEventListener("change", render);
+
+    // Init
+    datePicker.value = todayYMD();
+    fetchStationName();
+    render();
+  </script>
+</body>
+</html>
