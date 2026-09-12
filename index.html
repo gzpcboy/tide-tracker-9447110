@@ -315,7 +315,7 @@
     .tide-chart .now-dot { fill: #fff; stroke: var(--accent); stroke-width: 4; }
     .tide-chart .now-backplate { fill: rgba(4, 23, 39, 0.8); stroke: rgba(255,255,255,0.25); stroke-width: 1; }
     .tide-chart .now-label { fill: #fff; font-size: 11px; font-weight: 700; }
-    .tide-chart .now-value { fill: var(--accent); font-size: 15px; font-weight: 850; }
+    .tide-chart .now-value { fill: var(--accent); font-size: 17px; font-weight: 850; }
     .tide-chart .turn-stem { stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.8; }
     .tide-chart .turn-high { fill: var(--accent); stroke: var(--accent); }
     .tide-chart .turn-low { fill: var(--low); stroke: var(--low); }
@@ -703,10 +703,10 @@
       const nowX = x(now);
       const marker = current
         ? '<g class="now-marker"><line class="now-line" x1="' + nowX.toFixed(1) + '" y1="' + top + '" x2="' + nowX.toFixed(1) + '" y2="' + (top + plotHeight) + '"></line>' +
-          '<rect class="now-backplate" x="' + (nowX - 31).toFixed(1) + '" y="' + Math.max(2, y(current.height) - 45).toFixed(1) + '" width="62" height="40" rx="7"></rect>' +
+          '<rect class="now-backplate" x="' + (nowX - 38).toFixed(1) + '" y="' + Math.max(4, y(current.height) - 78).toFixed(1) + '" width="76" height="48" rx="8"></rect>' +
           '<circle class="now-dot" cx="' + nowX.toFixed(1) + '" cy="' + y(current.height).toFixed(1) + '" r="7"></circle>' +
-          '<text class="now-label" x="' + nowX.toFixed(1) + '" y="' + Math.max(14, y(current.height) - 32).toFixed(1) + '" text-anchor="middle">Now · ' + formatTime(now) + '</text>' +
-          '<text class="now-value" x="' + nowX.toFixed(1) + '" y="' + Math.max(30, y(current.height) - 15).toFixed(1) + '" text-anchor="middle">' + current.height.toFixed(1) + ' ft</text></g>'
+          '<text class="now-label" x="' + nowX.toFixed(1) + '" y="' + Math.max(20, y(current.height) - 62).toFixed(1) + '" text-anchor="middle">Now · ' + formatTime(now) + '</text>' +
+          '<text class="now-value" x="' + nowX.toFixed(1) + '" y="' + Math.max(40, y(current.height) - 40).toFixed(1) + '" text-anchor="middle">' + current.height.toFixed(1) + ' ft</text></g>'
         : '';
 
       const nextHigh = tides.find(t => t.type === 'H' && t.date > now);
