@@ -132,22 +132,17 @@ test.describe('Tide Tracker', () => {
 
     await page.locator('#nextDay').click();
 
-    // Non-today: show the daylight low window and a simulated curve for every tide.
+    // Non-today: a curve marks every tide plus unobstructed daylight guides.
     await expect(page.locator('#todayPill')).toBeHidden();
-    const summary = page.locator('.daylight-summary');
-    await expect(summary).toBeVisible();
-    await expect(summary).toContainText('Daylight low tide');
-    await expect(summary).toContainText('09:00');
-    await expect(summary.locator('.daylight-low')).toHaveCount(1);
-    await expect(summary.locator('.daylight-low')).toContainText('10:06');
-    await expect(summary.locator('.daylight-low')).toContainText('-1.3 ft');
+    await expect(page.locator('.daylight-summary')).toHaveCount(0);
 
     const chart = page.locator('#forecastTideChart');
     await expect(chart).toBeVisible();
     await expect(chart.locator('.forecast-one-foot')).toHaveCount(1);
     await expect(chart.locator('.time-guide')).toHaveCount(2);
     await expect(chart).toContainText('09:00');
-    await expect(chart).toContainText('Sunset');
+    await expect(chart).toContainText('SUNSET');
+    await expect(chart.locator('.forecast-guide-caption')).toHaveCount(1);
     await expect(chart.locator('.forecast-event')).toHaveCount(4);
     await expect(chart.locator('.forecast-curve')).toHaveAttribute('d', /^(?!.*NaN).*L /);
     await expect(chart).toContainText('23:25');
@@ -170,10 +165,9 @@ test.describe('Tide Tracker', () => {
     await page.locator('#datePicker').fill('2028-02-29');
     await page.locator('#datePicker').dispatchEvent('change');
 
-    const summary = page.locator('.daylight-summary');
-    await expect(summary).toBeVisible();
-    await expect(summary).toContainText('sunset 17:52');
-    await expect(page.locator('#forecastTideChart')).toBeVisible();
+    const chart = page.locator('#forecastTideChart');
+    await expect(chart).toBeVisible();
+    await expect(chart.locator('.forecast-guide-caption')).toContainText('SUNSET 17:52');
   });
 
   test('previous-day button works and is symmetric', async ({ page }) => {
