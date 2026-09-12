@@ -169,7 +169,7 @@ test.describe('Tide Tracker', () => {
 
     const chart = page.locator('#forecastTideChart');
     await expect(chart).toBeVisible();
-    await expect(chart.locator('.forecast-guide-note').filter({ hasText: 'SUNSET' })).toHaveText('SUNSET · 17:52');
+    await expect(chart.locator('.forecast-guide-note').filter({ hasText: 'SUNSET' })).toHaveText('SUNSET 17:52');
   });
 
   test('previous-day button works and is symmetric', async ({ page }) => {
