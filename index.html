@@ -42,7 +42,6 @@ header.title .station{margin-top:4px;color:var(--sub);font-size:.83rem;font-weig
 .tide-chart,.forecast-chart{margin:0 0 14px;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
 .tide-chart h2{padding:0;color:var(--sub);font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .forecast-context{margin:0 0 8px;color:var(--ink);font-size:1rem;font-weight:780;letter-spacing:.01em;text-align:center}
-.forecast-context span{color:#087fa9}
 .tide-chart svg,.forecast-chart svg{display:block;width:100%;height:auto;overflow:visible}
 .tide-chart .grid-line{stroke:var(--line);stroke-width:1}
 .tide-chart .curve,.forecast-curve{stroke:var(--cyan);stroke-width:5;stroke-linecap:round;fill:none}
@@ -504,7 +503,7 @@ footer.station-footer{margin-top:16px;text-align:center}footer.station-footer a{
         '<rect class="forecast-window-band" x="' + windowStartX + '" y="' + top + '" width="' + (windowEndX - windowStartX) + '" height="' + (bottom - top) + '"/>' +
         '<line class="forecast-one-foot" x1="' + left + '" x2="' + (width - right) + '" y1="' + oneFootY + '" y2="' + oneFootY + '"/>' +
         '<text class="forecast-one-foot-label" x="' + (left + 4) + '" y="' + (oneFootY - 5) + '">1 ft</text>' +
-        guide(540, "window-start", "09:00 START") + guide(sunsetMinute, "window-end", "SUNSET " + formatMinute(sunsetMinute)) +
+        guide(540, "window-start", "09:00") + guide(sunsetMinute, "window-end", "SUNSET " + formatMinute(sunsetMinute)) +
         '<path class="forecast-curve" clip-path="url(#forecastPlotClip)" d="' + curve + '"/>' +
         labels("H", 8) + labels("L", 246) + ticks + '</svg></section>';
     }
@@ -516,7 +515,7 @@ footer.station-footer{margin-top:16px;text-align:center}footer.station-footer a{
       }
 
       const sunsetMinute = sunsetMinutesFor(ymd);
-      content.innerHTML = '<p class="forecast-context">Beach-combing low-tide window <span>· 09:00 → sunset ' + formatMinute(sunsetMinute) + '</span></p>' + renderForecastChart(tides, ymd, sunsetMinute);
+      content.innerHTML = '<p class="forecast-context">Best time to visit the beach</p>' + renderForecastChart(tides, ymd, sunsetMinute);
     }
 
 
