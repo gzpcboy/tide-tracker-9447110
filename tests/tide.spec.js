@@ -142,7 +142,7 @@ test.describe('Tide Tracker', () => {
     await expect(chart.locator('.time-guide')).toHaveCount(2);
     await expect(chart).toContainText('09:00');
     await expect(chart).toContainText('SUNSET');
-    await expect(chart.locator('.forecast-guide-caption')).toHaveCount(1);
+    await expect(chart.locator('.forecast-guide-label')).toHaveCount(2);
     await expect(chart.locator('.forecast-event')).toHaveCount(4);
     await expect(chart.locator('.forecast-curve')).toHaveAttribute('d', /^(?!.*NaN).*L /);
     await expect(chart).toContainText('23:25');
@@ -167,7 +167,7 @@ test.describe('Tide Tracker', () => {
 
     const chart = page.locator('#forecastTideChart');
     await expect(chart).toBeVisible();
-    await expect(chart.locator('.forecast-guide-caption')).toContainText('SUNSET 17:52');
+    await expect(chart.locator('.forecast-guide-label')).toContainText('SUNSET 17:52');
   });
 
   test('previous-day button works and is symmetric', async ({ page }) => {
