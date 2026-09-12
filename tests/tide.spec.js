@@ -77,10 +77,16 @@ test.describe('Tide Tracker', () => {
     await expect(highCard).toHaveAttribute('data-state', 'value');
 
     // Next high after 13:00 is 17:40; next low after 13:00 is 22:33.
-    await expect(highCard.locator('.time')).toContainText('5:40');
-    await expect(highCard.locator('.ampm')).toHaveText('PM');
-    await expect(lowCard.locator('.time')).toContainText('10:33');
-    await expect(lowCard.locator('.ampm')).toHaveText('PM');
+    await expect(highCard.locator('.time')).toHaveText('17:40');
+    await expect(lowCard.locator('.time')).toHaveText('22:33');
+
+    const chart = page.locator('#todayTideChart');
+    await expect(chart).toBeVisible();
+    await expect(chart.locator('.now-marker')).toBeVisible();
+
+    const referenceRows = page.locator('.full-list .tide-row');
+    await expect(referenceRows).toHaveCount(4);
+    await expect(referenceRows.filter('.past')).toHaveCount(2);
   });
 
   test('shows dash when there is no more high tide today', async ({ page }) => {
@@ -97,7 +103,7 @@ test.describe('Tide Tracker', () => {
     await expect(highCard).toContainText('No more high tide today');
 
     await expect(lowCard).toHaveAttribute('data-state', 'value');
-    await expect(lowCard.locator('.time')).toContainText('10:33');
+    await expect(lowCard.locator('.time')).toHaveText('22:33');
   });
 
   test('shows dash for both when no tides remain today', async ({ page }) => {
@@ -127,10 +133,10 @@ test.describe('Tide Tracker', () => {
 
     const rows = page.locator('.tide-row');
     await expect(rows.nth(0)).toContainText('High');
-    await expect(rows.nth(0)).toContainText('2:43');
+    await expect(rows.nth(0)).toContainText('02:43');
     await expect(rows.nth(1)).toContainText('Low');
     await expect(rows.nth(1)).toContainText('10:06');
-    await expect(rows.nth(3)).toContainText('11:25'); // 23:25
+    await expect(rows.nth(3)).toContainText('23:25');
 
     // "Back to today" returns to the card view.
     await expect(page.locator('#jumpToday')).toBeVisible();
