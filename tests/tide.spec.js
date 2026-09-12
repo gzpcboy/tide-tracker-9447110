@@ -86,7 +86,7 @@ test.describe('Tide Tracker', () => {
 
     const referenceRows = page.locator('.full-list .tide-row');
     await expect(referenceRows).toHaveCount(4);
-    await expect(referenceRows.filter('.past')).toHaveCount(2);
+    await expect(page.locator('.full-list .tide-row.past')).toHaveCount(2);
   });
 
   test('shows dash when there is no more high tide today', async ({ page }) => {
