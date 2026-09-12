@@ -317,8 +317,34 @@
     .tide-chart .turn-detail { font-size: 11px; font-weight: 600; }
     .tide-chart .turn-value { font-size: 13px; font-weight: 800; }
 
+    .trend-strip {
+      display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 10px; padding: 10px 14px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: 14px; color: var(--muted); font-size: 0.82rem;
+    }
+    .trend-strip .trend-status { color: var(--accent); font-weight: 800; }
+    .trend-strip .trend-next { color: var(--text); font-weight: 650; }
+
+    .low-outlook {
+      background: var(--glass); border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 18px; padding: 14px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+    }
+    .low-outlook h2 {
+      color: #ffe19a; font-size: 0.84rem; text-transform: uppercase;
+      letter-spacing: 0.8px; font-weight: 800; margin-bottom: 10px;
+    }
+    .low-events { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+    .low-event {
+      background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.28);
+      border-radius: 12px; padding: 11px 12px;
+    }
+    .low-event .low-time { color: var(--text); font-size: 1.12rem; font-weight: 800; }
+    .low-event .low-height { color: #ffe19a; font-size: 1rem; font-weight: 800; margin-top: 2px; }
+    .low-event .low-label { color: var(--muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.55px; margin-bottom: 5px; }
+
     .full-list {
-      margin-top: 4px;
+      margin-top: 10px;
       background: var(--glass);
       border: 1px solid var(--glass-border);
       backdrop-filter: blur(12px);
@@ -608,7 +634,15 @@
         '</div>';
       }
 
-      content.innerHTML = renderTideChart(tides, now, current) + '<div class="cards">' +
+      const nextTurns = tides.filter(t => t.date > now).slice(0, 2).map(t => {
+        const label = t.type === 'H' ? 'high' : 'low';
+        return '<span class="trend-next">Next ' + label + ' ' + formatTime(t.date) + ' · ' + formatHeight(t.height) + '</span>';
+      }).join('<span>→</span>');
+      const trendHtml = current
+        ? '<section class="trend-strip"><span class="trend-status">' + current.trend + '</span>' + nextTurns + '</section>'
+        : '';
+
+      content.innerHTML = trendHtml + renderTideChart(tides, now, current) + '<div class="cards">' +
         cardHtml('low', 'Next Low Tide', nextLow) +
         cardHtml('high', 'Next High Tide', nextHigh) +
         '</div>' +
@@ -682,18 +716,25 @@
         setStatus('No tide predictions available for this date.');
         return;
       }
-      let rows = '';
-      for (const t of tides) {
-        const f = formatTime(t.date);
-        const kind = t.type === 'H' ? 'high' : 'low';
-        const word = t.type === 'H' ? 'High' : 'Low';
-        rows += '<div class="tide-row" data-kind="' + kind + '">' +
-          '<span class="badge ' + kind + '">' + word + '</span>' +
-          '<span class="r-time">' + f + '</span>' +
+
+      const lowTides = tides.filter(t => t.type === 'L');
+      const lowEvents = lowTides.map(t => {
+        return '<article class="low-event">' +
+          '<div class="low-label">Low tide</div>' +
+          '<div class="low-time">' + formatTime(t.date) + '</div>' +
+          '<div class="low-height">' + formatHeight(t.height) + '</div></article>';
+      }).join('');
+
+      const otherRows = tides.filter(t => t.type === 'H').map(t => {
+        return '<div class="tide-row" data-kind="high">' +
+          '<span class="badge high">High</span>' +
+          '<span class="r-time">' + formatTime(t.date) + '</span>' +
           '<span class="r-height">' + formatHeight(t.height) + '</span></div>';
-      }
-      content.innerHTML = '<div class="full-list"><h2>All tides for ' +
-        formatLongDate(ymd) + '</h2>' + rows + '</div>';
+      }).join('');
+
+      content.innerHTML = '<section class="low-outlook" aria-label="Low tides for selected date"><h2>Low tides · ' +
+        formatLongDate(ymd) + '</h2><div class="low-events">' + lowEvents + '</div></section>' +
+        '<details class="full-list"><summary>High-tide reference</summary>' + otherRows + '</details>';
     }
 
     async function render() {
