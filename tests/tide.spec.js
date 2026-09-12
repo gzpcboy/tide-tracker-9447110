@@ -141,14 +141,14 @@ test.describe('Tide Tracker', () => {
     await expect(chart.locator('.forecast-one-foot')).toHaveCount(1);
     await expect(chart.locator('.time-guide')).toHaveCount(2);
     await expect(chart).toContainText('09:00');
-    await expect(chart).toContainText('LOW-TIDE WINDOW');
-    await expect(chart).toContainText('SUNSET');
+    await expect(chart).toContainText('START · 09:00');
+    await expect(chart).toContainText('SUNSET ·');
     await expect(chart.locator('.forecast-window-band')).toHaveCount(1);
-    await expect(chart.locator('.forecast-window-label')).toHaveCount(1);
+    await expect(chart.locator('.forecast-guide-note')).toHaveCount(2);
     await expect(chart.locator('.forecast-event')).toHaveCount(4);
     await expect(chart.locator('.forecast-curve')).toHaveAttribute('d', /^(?!.*NaN).*L /);
     await expect(chart).toContainText('23:25');
-    await expect(page.locator('.full-list')).toContainText('All tide times');
+    await expect(page.locator('.full-list')).toHaveCount(0);
 
     // "Back to today" returns to the card view.
     await expect(page.locator('#jumpToday')).toBeVisible();
@@ -169,7 +169,7 @@ test.describe('Tide Tracker', () => {
 
     const chart = page.locator('#forecastTideChart');
     await expect(chart).toBeVisible();
-    await expect(chart.locator('.forecast-window-label')).toContainText('09:00 → SUNSET 17:52');
+    await expect(chart.locator('.forecast-guide-note').filter({ hasText: 'SUNSET' })).toHaveText('SUNSET · 17:52');
   });
 
   test('previous-day button works and is symmetric', async ({ page }) => {
