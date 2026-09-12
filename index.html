@@ -589,7 +589,7 @@
         '</div>';
       }
 
-      content.innerHTML = currentHtml + '<div class="cards">' +
+      content.innerHTML = currentHtml + renderTideChart(tides, now, current) + '<div class="cards">' +
         cardHtml('low', 'Next Low Tide', nextLow) +
         cardHtml('high', 'Next High Tide', nextHigh) +
         '</div>' +
@@ -652,7 +652,7 @@
         const word = t.type === 'H' ? 'High' : 'Low';
         rows += '<div class="tide-row" data-kind="' + kind + '">' +
           '<span class="badge ' + kind + '">' + word + '</span>' +
-          '<span class="r-time">' + f.time + ' ' + f.ampm + '</span>' +
+          '<span class="r-time">' + f + '</span>' +
           '<span class="r-height">' + formatHeight(t.height) + '</span></div>';
       }
       content.innerHTML = '<div class="full-list"><h2>All tides for ' +
