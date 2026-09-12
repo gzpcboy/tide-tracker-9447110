@@ -453,6 +453,7 @@
   <script>
     const STATION_ID = "9447110";
     const CURVE_STATION_ID = "9447130"; // Seattle reference station, provides full-interval predictions.
+    const CURVE_TIME_OFFSET_MINUTES = -1; // Measured against Station 9447110 over 90 days.
     const API_BASE = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
     const MD_API = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/" + STATION_ID + ".json";
 
@@ -740,7 +741,7 @@
       const data = await res.json();
       if (data.error) throw new Error(data.error.message || 'API error');
       return (data.predictions || []).map(p => ({
-        date: parseApiTime(p.t),
+        date: new Date(parseApiTime(p.t).getTime() + CURVE_TIME_OFFSET_MINUTES * 60000),
         height: p.v,
       }));
     }
