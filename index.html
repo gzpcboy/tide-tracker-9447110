@@ -452,6 +452,7 @@
 
   <script>
     const STATION_ID = "9447110";
+    const CURVE_STATION_ID = "9447130"; // Seattle reference station, provides full-interval predictions.
     const API_BASE = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
     const MD_API = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/" + STATION_ID + ".json";
 
@@ -591,7 +592,7 @@
       const now = new Date();
       const nextHigh = tides.find(t => t.type === 'H' && t.date > now);
       const nextLow = tides.find(t => t.type === 'L' && t.date > now);
-      const current = estimateCurrentTide(contextTides, now);
+      const current = estimateCurrentTide(hourlyHeights, now);
 
       function cardHtml(kind, label, tide) {
         if (!tide) {
@@ -671,7 +672,7 @@
       const curveEnd = new Date(dayEnd);
       curveStart.setHours(curveStart.getHours() - 1);
       curveEnd.setHours(curveEnd.getHours() + 1);
-      const curveTides = [...hourlyHeights, ...contextTides]
+      const curveTides = hourlyHeights
         .filter(t => t.date >= curveStart && t.date <= curveEnd)
         .sort((a, b) => a.date - b.date);
       const heights = curveTides.map(t => parseFloat(t.height));
@@ -717,37 +718,31 @@
           '<tspan class="turn-detail" x="' + tx.toFixed(1) + '" dy="13">' + formatTime(tide.date) + '</tspan>' +
           '<tspan class="turn-value" x="' + tx.toFixed(1) + '" dy="14">' + formatHeight(tide.height) + '</tspan></text></g>';
       }
-      const turns = turnLabel(nextHigh, 'High tide', 'high') + turnLabel(nextLow, 'Low tide', 'low');
+      const turns = '';
 
-      return '<section class="tide-chart" id="todayTideChart" aria-label="Today’s tide curve">' +
+      return '<section class="tide-chart" id="todayTideChart" aria-label="Seattle reference tide curve">' +
         '<h2>Today’s tide curve</h2><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Tide height over 24 hours">' +
         ticks + '<path class="curve" d="' + path + '"></path>' + turns + marker + '</svg></section>';
     }
 
-    function estimateHeightAt(tides, at) {
-      let previous = null;
-      let next = null;
-      for (const tide of tides) {
-        if (tide.date <= at) previous = tide;
-        if (!next && tide.date > at) next = tide;
-      }
-      if (!previous || !next) return null;
-      const progress = clamp((at - previous.date) / (next.date - previous.date), 0, 1);
-      const start = parseFloat(previous.height);
-      const end = parseFloat(next.height);
-      return start + (end - start) * ((1 - Math.cos(Math.PI * progress)) / 2);
-    }
-
-    function buildHourlyCurvePoints(tides, ymd) {
-      const start = parseApiTime(ymd + ' 00:00');
-      const points = [];
-      for (let hour = -1; hour <= 25; hour++) {
-        const date = new Date(start);
-        date.setHours(date.getHours() + hour);
-        const height = estimateHeightAt(tides, date);
-        if (height !== null) points.push({ date, height: String(height) });
-      }
-      return points;
+    async function fetchHourlyHeights(ymd) {
+      const selectedDay = parseApiTime(ymd + ' 12:00');
+      const previousDay = new Date(selectedDay);
+      const nextDay = new Date(selectedDay);
+      previousDay.setDate(previousDay.getDate() - 1);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const url = API_BASE +
+        '?product=predictions&application=west-seattle-area-tides&datum=MLLW&station=' + CURVE_STATION_ID +
+        '&time_zone=lst_ldt&units=english&interval=h&format=json' +
+        '&begin_date=' + ymdCompact(toYMD(previousDay)) + '&end_date=' + ymdCompact(toYMD(nextDay));
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('NOAA API returned ' + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || 'API error');
+      return (data.predictions || []).map(p => ({
+        date: parseApiTime(p.t),
+        height: p.v,
+      }));
     }
 
     function renderFullView(tides, ymd) {
@@ -794,9 +789,11 @@
 
       setStatus('Loading tide data…');
       try {
-        const contextTides = await fetchTides(selected);
+        const [contextTides, hourlyHeights] = await Promise.all([
+          fetchTides(selected),
+          fetchHourlyHeights(selected),
+        ]);
         const tides = contextTides.filter(t => toYMD(t.date) === selected);
-        const hourlyHeights = buildHourlyCurvePoints(contextTides, selected);
         if (isToday) renderTodayView(tides, contextTides, hourlyHeights);
         else renderFullView(tides, selected);
       } catch (e) {
