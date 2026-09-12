@@ -608,8 +608,9 @@
 
     function renderTodayView(tides, contextTides, hourlyHeights) {
       const now = new Date();
-      const nextHigh = tides.find(t => t.type === 'H' && t.date > now);
-      const nextLow = tides.find(t => t.type === 'L' && t.date > now);
+      // Context includes tomorrow, so late-evening cards remain useful.
+      const nextHigh = contextTides.find(t => t.type === 'H' && t.date > now);
+      const nextLow = contextTides.find(t => t.type === 'L' && t.date > now);
       const current = estimateCurrentTide(hourlyHeights, now);
 
       function cardHtml(kind, label, tide) {
@@ -621,7 +622,8 @@
         }
         const f = formatTime(tide.date);
         return '<div class="card ' + kind + '" data-kind="' + kind + '" data-state="value">' +
-          '<div class="label"><span class="dot"></span>' + label + '</div>' +
+          '<div class="label"><span class="dot"></span>' + label +
+            (toYMD(tide.date) === todayYMD() ? '' : ' · Tomorrow') + '</div>' +
           '<div class="time">' + f + '</div>' +
           '<div class="height">' + formatHeight(tide.height) + '</div>' +
           '<div class="rel">' + relativeFromNow(tide.date) + '</div></div>';
@@ -716,7 +718,7 @@
       if(prev && next) {
         const value=+prev.height+(+next.height-+prev.height)*(now-prev.date)/(next.date-prev.date);
         const px=x(now), py=y(value), labelX=clamp(px,66,width-66);
-        marker='<g class="now-marker"><path class="now-line" d="M '+labelX+' 49 L '+px+' '+(top-8)+' L '+px+' '+py+'"/>'+
+        marker='<g class="now-marker"><path class="now-line" fill="none" d="M '+labelX+' 49 L '+px+' '+(top-8)+' L '+px+' '+py+'"/>'+
           '<rect class="now-backplate" x="'+(labelX-62)+'" y="1" width="124" height="49" rx="9"/>'+
           '<text class="now-label" x="'+labelX+'" y="18" text-anchor="middle">Now · '+formatTime(now)+'</text>'+
           '<text class="now-value" x="'+labelX+'" y="41" text-anchor="middle">'+value.toFixed(1)+' ft</text>'+
