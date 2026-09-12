@@ -459,7 +459,7 @@
     .forecast-one-foot { stroke: #fbbf24; stroke-width: 1.25; stroke-dasharray: 4 4; opacity: .82; }
     .forecast-one-foot-label { fill: #ffe19a; font-size: 11px; font-weight: 800; }
     .time-guide line { stroke: rgba(234,246,255,.62); stroke-width: 1.2; stroke-dasharray: 4 4; }
-    .time-guide text { fill: var(--muted); font-size: 10px; font-weight: 700; }
+    .forecast-guide-caption { fill: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .35px; }
     .forecast-event path { stroke: rgba(168,198,221,.7); stroke-width: 1.2; }
     .forecast-event circle { fill: #a8c6dd; stroke: #09243a; stroke-width: 2; }
     .forecast-event rect { fill: #102c40; }
@@ -855,7 +855,7 @@
     }
 
     function renderForecastChart(tides, ymd, sunsetMinute) {
-      const width = 400, height = 316, left = 24, right = 24, top = 66, bottom = 228;
+      const width = 400, height = 338, left = 24, right = 24, top = 66, bottom = 228;
       const dayStart = dateAtMinute(ymd, 0);
       const dayEnd = dateAtMinute(ymd, 1440);
       const samples = simulatedTidePoints(tides, ymd);
@@ -872,10 +872,9 @@
         return '<text class="forecast-axis" x="' + tx + '" y="306" text-anchor="middle">' + pad(hour) + ':00</text>';
       }).join("");
 
-      function guide(minute, label, anchor) {
+      function guide(minute) {
         const gx = x(dateAtMinute(ymd, minute));
-        return '<g class="time-guide"><line x1="' + gx + '" x2="' + gx + '" y1="' + top + '" y2="' + bottom + '"/>' +
-          '<text x="' + gx + '" y="60" text-anchor="' + anchor + '">' + label + '</text></g>';
+        return '<g class="time-guide"><line x1="' + gx + '" x2="' + gx + '" y1="' + top + '" y2="' + bottom + '"/></g>';
       }
 
       function labels(type, laneY) {
@@ -902,13 +901,15 @@
       }
 
       return '<section class="forecast-chart" id="forecastTideChart" aria-label="Tide curve with daylight guides">' +
-        '<svg viewBox="0 0 400 316" role="img" aria-label="Tide curve, 1 foot line, 9 AM and sunset">' +
+        '<svg viewBox="0 0 400 338" role="img" aria-label="Tide curve, 1 foot line, 9 AM and sunset">' +
         '<defs><clipPath id="forecastPlotClip"><rect x="' + left + '" y="' + top + '" width="' + (width - left - right) + '" height="' + (bottom - top) + '"/></clipPath></defs>' +
         '<line class="forecast-one-foot" x1="' + left + '" x2="' + (width - right) + '" y1="' + oneFootY + '" y2="' + oneFootY + '"/>' +
         '<text class="forecast-one-foot-label" x="' + (left + 4) + '" y="' + (oneFootY - 5) + '">1 ft</text>' +
-        guide(540, "09:00", "middle") + guide(sunsetMinute, "Sunset " + formatMinute(sunsetMinute), sunsetMinute > 1200 ? "end" : "middle") +
+        guide(540) + guide(sunsetMinute) +
         '<path class="forecast-curve" clip-path="url(#forecastPlotClip)" d="' + curve + '"/>' +
-        labels("H", 8) + labels("L", 241) + ticks + '</svg></section>';
+        labels("H", 8) + labels("L", 241) + ticks +
+        '<text class="forecast-guide-caption" x="200" y="329" text-anchor="middle">DASHED GUIDES · 09:00 — SUNSET ' + formatMinute(sunsetMinute) + '</text>' +
+        '</svg></section>';
     }
 
     function renderFullView(tides, ymd) {
@@ -918,12 +919,6 @@
       }
 
       const sunsetMinute = sunsetMinutesFor(ymd);
-      const daylightStart = dateAtMinute(ymd, 9 * 60);
-      const daylightEnd = dateAtMinute(ymd, sunsetMinute);
-      const daylightLows = tides.filter(t => t.type === 'L' && t.date >= daylightStart && t.date <= daylightEnd);
-      const daylightHtml = daylightLows.length
-        ? daylightLows.map(t => '<div class="daylight-low"><span>' + formatTime(t.date) + '</span><b>' + formatHeight(t.height) + '</b></div>').join('')
-        : '<div class="daylight-empty">No low tide in this daylight window</div>';
       const referenceRows = tides.map(t => {
         const kind = t.type === 'H' ? 'high' : 'low';
         return '<div class="tide-row" data-kind="' + kind + '">' +
@@ -932,10 +927,7 @@
           '<span class="r-height">' + formatHeight(t.height) + '</span></div>';
       }).join('');
 
-      content.innerHTML = '<section class="daylight-summary low-outlook" aria-label="Daylight low tides">' +
-        '<div><h2>Daylight low tide</h2><p>09:00 – sunset ' + formatMinute(sunsetMinute) + '</p></div>' +
-        '<div class="daylight-low-list">' + daylightHtml + '</div></section>' +
-        renderForecastChart(tides, ymd, sunsetMinute) +
+      content.innerHTML = renderForecastChart(tides, ymd, sunsetMinute) +
         '<details class="full-list"><summary>All tide times</summary>' + referenceRows + '</details>';
     }
 
