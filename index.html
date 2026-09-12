@@ -4,6 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tide Tracker · Station 9447110</title>
+  <meta name="description" content="Live high and low tide times for Lockheed Shipyard, WA (NOAA Station 9447110)." />
+  <link rel="canonical" href="https://gzpcboy.github.io/tide-tracker-9447110/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Tide Tracker" />
+  <meta property="og:title" content="Tide Tracker · Lockheed Shipyard, WA" />
+  <meta property="og:description" content="Live high and low tide times from NOAA Station 9447110." />
+  <meta property="og:url" content="https://gzpcboy.github.io/tide-tracker-9447110/" />
+  <meta property="og:image" content="https://gzpcboy.github.io/tide-tracker-9447110/social-card.png" />
+  <meta property="og:image:alt" content="Moonlit ocean waves for Tide Tracker" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Tide Tracker · Lockheed Shipyard, WA" />
+  <meta name="twitter:description" content="Live high and low tide times from NOAA Station 9447110." />
+  <meta name="twitter:image" content="https://gzpcboy.github.io/tide-tracker-9447110/social-card.png" />
   <style>
     :root {
       --bg-top: #0a2540;
@@ -140,6 +153,12 @@
       font-size: 0.95rem;
       color-scheme: dark;
       cursor: pointer;
+    }
+    .weekday-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.25px;
     }
     .today-pill {
       font-size: 0.72rem;
@@ -334,6 +353,7 @@
       <button class="nav-btn" id="prevDay" title="Previous day" aria-label="Previous day">‹</button>
       <div class="date-center">
         <input type="date" id="datePicker" aria-label="Select date" />
+        <span class="weekday-label" id="weekdayLabel" aria-live="polite"></span>
         <span class="today-pill" id="todayPill">Today</span>
       </div>
       <button class="nav-btn" id="nextDay" title="Next day" aria-label="Next day">›</button>
@@ -361,6 +381,7 @@
     const prevBtn = document.getElementById("prevDay");
     const nextBtn = document.getElementById("nextDay");
     const todayPill = document.getElementById("todayPill");
+    const weekdayLabel = document.getElementById("weekdayLabel");
     const todayLink = document.getElementById("todayLink");
     const content = document.getElementById("content");
     const stationNameEl = document.getElementById("stationName");
@@ -388,6 +409,11 @@
     function formatHeight(v) {
       const n = parseFloat(v);
       return n.toFixed(1) + " ft";
+    }
+
+    function formatWeekday(ymd) {
+      const d = parseApiTime(ymd + " 12:00");
+      return d.toLocaleDateString(undefined, { weekday: "long" });
     }
 
     function formatLongDate(ymd) {
@@ -556,6 +582,7 @@
     async function render() {
       const selected = datePicker.value;
       const isToday = selected === todayYMD();
+      weekdayLabel.textContent = formatWeekday(selected);
       todayPill.classList.toggle('hidden', !isToday);
 
       if (isToday) {
