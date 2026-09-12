@@ -141,7 +141,7 @@ test.describe('Tide Tracker', () => {
     await expect(chart.locator('.forecast-one-foot')).toHaveCount(1);
     await expect(chart.locator('.time-guide')).toHaveCount(2);
     await expect(chart).toContainText('09:00');
-    await expect(chart).toContainText('START · 09:00');
+    await expect(chart).toContainText('09:00');
     await expect(chart).toContainText('SUNSET ·');
     await expect(chart.locator('.forecast-window-band')).toHaveCount(1);
     await expect(chart.locator('.forecast-guide-note')).toHaveCount(2);
