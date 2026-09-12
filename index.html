@@ -41,7 +41,6 @@ header.title .station{margin-top:4px;color:var(--sub);font-size:.83rem;font-weig
 .today-link{text-align:center;margin:0 0 10px}.today-link button{background:none;border:0;color:#087fa9;cursor:pointer;font-size:1rem;font-weight:650;text-decoration:underline}
 .tide-chart,.forecast-chart{margin:0 0 14px;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
 .tide-chart h2{padding:0;color:var(--sub);font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-.forecast-context{margin:2px 0 0;color:var(--sub);font-size:.92rem;font-weight:720;letter-spacing:.01em;text-align:center}
 .tide-chart svg,.forecast-chart svg{display:block;width:100%;height:auto;overflow:visible}
 .tide-chart .grid-line{stroke:var(--line);stroke-width:1}
 .tide-chart .curve,.forecast-curve{stroke:var(--cyan);stroke-width:5;stroke-linecap:round;fill:none}
@@ -515,7 +514,7 @@ footer.station-footer{margin-top:16px;text-align:center}footer.station-footer a{
       }
 
       const sunsetMinute = sunsetMinutesFor(ymd);
-      content.innerHTML = renderForecastChart(tides, ymd, sunsetMinute) + '<p class="forecast-context">Best time to visit the beach</p>';
+      content.innerHTML = renderForecastChart(tides, ymd, sunsetMinute);
     }
 
 
