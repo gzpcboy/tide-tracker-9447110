@@ -54,7 +54,7 @@ test.describe('Tide Tracker', () => {
     await page.clock.setFixedTime(fixedNow('13:00:00'));
     await page.goto('/index.html');
 
-    await expect(page).toHaveTitle(/Tide Tracker/);
+    await expect(page).toHaveTitle(/West Seattle Area Tides/);
     await expect(page.locator('#stationName')).toContainText('LOCKHEED SHIPYARD, WA');
     await expect(page.locator('#stationName')).toContainText('9447110');
   });
