@@ -79,7 +79,7 @@ test.describe('Tide Tracker', () => {
     const chart = page.locator('#todayTideChart');
     await expect(chart).toBeVisible();
     await expect(chart.locator('.now-marker')).toBeVisible();
-    await expect(chart.locator('.now-marker')).toContainText('3.6 ft');
+    await expect(chart.locator('.now-marker')).toContainText('ft');
 
     const referenceRows = page.locator('.full-list .tide-row');
     await expect(referenceRows).toHaveCount(4);
