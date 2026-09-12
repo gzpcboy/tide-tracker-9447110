@@ -303,7 +303,7 @@
       letter-spacing: 0.8px;
       text-transform: uppercase;
     }
-    .tide-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .tide-chart svg { display: block; width: 100%; height: auto; overflow: hidden; }
     .tide-chart .grid-line { stroke: rgba(255,255,255,0.13); stroke-width: 1; }
     .tide-chart .curve { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
     .tide-chart .axis-label { fill: var(--muted); font-size: 11px; font-weight: 600; }
@@ -563,11 +563,15 @@
     }
 
     async function fetchTides(ymd) {
-      const compact = ymdCompact(ymd);
+      const selectedDay = parseApiTime(ymd + ' 12:00');
+      const previousDay = new Date(selectedDay);
+      const nextDay = new Date(selectedDay);
+      previousDay.setDate(previousDay.getDate() - 1);
+      nextDay.setDate(nextDay.getDate() + 1);
       const url = API_BASE +
         '?product=predictions&application=tide-tracker&datum=MLLW&station=' + STATION_ID +
         '&time_zone=lst_ldt&units=english&interval=hilo&format=json' +
-        '&begin_date=' + compact + '&end_date=' + compact;
+        '&begin_date=' + ymdCompact(toYMD(previousDay)) + '&end_date=' + ymdCompact(toYMD(nextDay));
       const res = await fetch(url);
       if (!res.ok) throw new Error('NOAA API returned ' + res.status);
       const data = await res.json();
@@ -579,11 +583,11 @@
       }));
     }
 
-    function renderTodayView(tides) {
+    function renderTodayView(tides, contextTides) {
       const now = new Date();
       const nextHigh = tides.find(t => t.type === 'H' && t.date > now);
       const nextLow = tides.find(t => t.type === 'L' && t.date > now);
-      const current = estimateCurrentTide(tides, now);
+      const current = estimateCurrentTide(contextTides, now);
 
       function cardHtml(kind, label, tide) {
         if (!tide) {
@@ -642,7 +646,7 @@
         ? '<section class="trend-strip"><span class="trend-status">' + current.trend + '</span>' + nextTurns + '</section>'
         : '';
 
-      content.innerHTML = trendHtml + renderTideChart(tides, now, current) + '<div class="cards">' +
+      content.innerHTML = trendHtml + renderTideChart(tides, now, current, contextTides) + '<div class="cards">' +
         cardHtml('low', 'Next Low Tide', nextLow) +
         cardHtml('high', 'Next High Tide', nextHigh) +
         '</div>' +
@@ -650,20 +654,27 @@
         referenceRows + '</details>';
     }
 
-    function renderTideChart(tides, now, current) {
+    function renderTideChart(tides, now, current, contextTides) {
       if (tides.length < 2) return '';
 
       const width = 520, height = 190, left = 32, right = 14, top = 18, bottom = 28;
       const plotWidth = width - left - right, plotHeight = height - top - bottom;
-      const heights = tides.map(t => parseFloat(t.height));
+      const selectedYmd = toYMD(tides[0].date);
+      const dayStart = parseApiTime(selectedYmd + ' 00:00');
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const before = contextTides.filter(t => t.date < dayStart).at(-1);
+      const after = contextTides.find(t => t.date >= dayEnd);
+      const curveTides = [before, ...tides, after].filter(Boolean);
+      const heights = curveTides.map(t => parseFloat(t.height));
       const min = Math.min(...heights), max = Math.max(...heights);
       const padding = Math.max(1, (max - min) * 0.16);
-      const x = date => left + ((date.getHours() * 60 + date.getMinutes()) / 1440) * plotWidth;
+      const x = date => left + ((date - dayStart) / (dayEnd - dayStart)) * plotWidth;
       const y = value => top + ((max + padding - value) / (max - min + padding * 2)) * plotHeight;
 
-      let path = 'M ' + x(tides[0].date).toFixed(1) + ' ' + y(parseFloat(tides[0].height)).toFixed(1);
-      for (let i = 1; i < tides.length; i++) {
-        const previous = tides[i - 1], tide = tides[i];
+      let path = 'M ' + x(curveTides[0].date).toFixed(1) + ' ' + y(parseFloat(curveTides[0].height)).toFixed(1);
+      for (let i = 1; i < curveTides.length; i++) {
+        const previous = curveTides[i - 1], tide = curveTides[i];
         const x1 = x(previous.date), x2 = x(tide.date);
         const y1 = y(parseFloat(previous.height)), y2 = y(parseFloat(tide.height));
         const control = (x2 - x1) / 2;
@@ -680,8 +691,7 @@
           '<text class="axis-label" x="' + tickX + '" y="' + (height - 7) + '" text-anchor="middle">' + label + '</text>';
       }).join('');
 
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      const nowX = left + (nowMinutes / 1440) * plotWidth;
+      const nowX = x(now);
       const marker = current
         ? '<g class="now-marker"><line class="now-line" x1="' + nowX.toFixed(1) + '" y1="' + top + '" x2="' + nowX.toFixed(1) + '" y2="' + (top + plotHeight) + '"></line>' +
           '<circle class="now-dot" cx="' + nowX.toFixed(1) + '" cy="' + y(current.height).toFixed(1) + '" r="6"></circle>' +
@@ -755,8 +765,9 @@
 
       setStatus('Loading tide data…');
       try {
-        const tides = await fetchTides(selected);
-        if (isToday) renderTodayView(tides);
+        const contextTides = await fetchTides(selected);
+        const tides = contextTides.filter(t => toYMD(t.date) === selected);
+        if (isToday) renderTodayView(tides, contextTides);
         else renderFullView(tides, selected);
       } catch (e) {
         setStatus('Could not load tide data: ' + e.message, true);
