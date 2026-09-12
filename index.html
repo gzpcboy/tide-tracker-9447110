@@ -459,7 +459,7 @@
     .forecast-one-foot { stroke: #fbbf24; stroke-width: 1.25; stroke-dasharray: 4 4; opacity: .82; }
     .forecast-one-foot-label { fill: #ffe19a; font-size: 11px; font-weight: 800; }
     .time-guide line { stroke: rgba(234,246,255,.62); stroke-width: 1.2; stroke-dasharray: 4 4; }
-    .forecast-guide-caption { fill: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .35px; }
+    .forecast-guide-label { fill: #d8f6ff; font-size: 11px; font-weight: 800; letter-spacing: .4px; }
     .forecast-event path { stroke: rgba(168,198,221,.7); stroke-width: 1.2; }
     .forecast-event circle { fill: #a8c6dd; stroke: #09243a; stroke-width: 2; }
     .forecast-event rect { fill: #102c40; }
@@ -855,7 +855,7 @@
     }
 
     function renderForecastChart(tides, ymd, sunsetMinute) {
-      const width = 400, height = 338, left = 24, right = 24, top = 66, bottom = 228;
+      const width = 400, height = 316, left = 24, right = 24, top = 94, bottom = 228;
       const dayStart = dateAtMinute(ymd, 0);
       const dayEnd = dateAtMinute(ymd, 1440);
       const samples = simulatedTidePoints(tides, ymd);
@@ -872,9 +872,10 @@
         return '<text class="forecast-axis" x="' + tx + '" y="306" text-anchor="middle">' + pad(hour) + ':00</text>';
       }).join("");
 
-      function guide(minute) {
+      function guide(minute, label) {
         const gx = x(dateAtMinute(ymd, minute));
-        return '<g class="time-guide"><line x1="' + gx + '" x2="' + gx + '" y1="' + top + '" y2="' + bottom + '"/></g>';
+        return '<g class="time-guide"><text class="forecast-guide-label" x="' + gx + '" y="18" text-anchor="middle">' + label + '</text>' +
+          '<line x1="' + gx + '" x2="' + gx + '" y1="' + top + '" y2="' + bottom + '"/></g>';
       }
 
       function labels(type, laneY) {
@@ -901,15 +902,13 @@
       }
 
       return '<section class="forecast-chart" id="forecastTideChart" aria-label="Tide curve with daylight guides">' +
-        '<svg viewBox="0 0 400 338" role="img" aria-label="Tide curve, 1 foot line, 9 AM and sunset">' +
+        '<svg viewBox="0 0 400 316" role="img" aria-label="Tide curve, 1 foot line, 9 AM and sunset">' +
         '<defs><clipPath id="forecastPlotClip"><rect x="' + left + '" y="' + top + '" width="' + (width - left - right) + '" height="' + (bottom - top) + '"/></clipPath></defs>' +
         '<line class="forecast-one-foot" x1="' + left + '" x2="' + (width - right) + '" y1="' + oneFootY + '" y2="' + oneFootY + '"/>' +
         '<text class="forecast-one-foot-label" x="' + (left + 4) + '" y="' + (oneFootY - 5) + '">1 ft</text>' +
-        guide(540) + guide(sunsetMinute) +
+        guide(540, "09:00") + guide(sunsetMinute, "SUNSET " + formatMinute(sunsetMinute)) +
         '<path class="forecast-curve" clip-path="url(#forecastPlotClip)" d="' + curve + '"/>' +
-        labels("H", 8) + labels("L", 241) + ticks +
-        '<text class="forecast-guide-caption" x="200" y="329" text-anchor="middle">DASHED GUIDES · 09:00 — SUNSET ' + formatMinute(sunsetMinute) + '</text>' +
-        '</svg></section>';
+        labels("H", 39) + labels("L", 241) + ticks + '</svg></section>';
     }
 
     function renderFullView(tides, ymd) {
