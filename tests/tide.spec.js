@@ -32,7 +32,10 @@ async function mockNoaa(page) {
   await page.route('**/datagetter**', (route) => {
     const url = new URL(route.request().url());
     const begin = url.searchParams.get('begin_date') || '';
-    const predictions = FIXTURES[begin] || [];
+    const end = url.searchParams.get('end_date') || begin;
+    const predictions = Object.entries(FIXTURES)
+      .filter(([date]) => date >= begin && date <= end)
+      .flatMap(([, items]) => items);
     route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({ predictions }),
