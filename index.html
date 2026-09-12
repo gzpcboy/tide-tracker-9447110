@@ -280,6 +280,32 @@
     .card .rel { margin-top: 4px; font-size: 0.8rem; color: var(--accent); }
     .card .none { font-size: 1.9rem; font-weight: 700; color: var(--muted); }
 
+    .tide-chart {
+      margin: 14px 0;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 18px;
+      padding: 15px 12px 10px;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+    }
+    .tide-chart h2 {
+      padding: 0 6px 10px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .tide-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .tide-chart .grid-line { stroke: rgba(255,255,255,0.13); stroke-width: 1; }
+    .tide-chart .curve { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+    .tide-chart .axis-label { fill: var(--muted); font-size: 11px; font-weight: 600; }
+    .tide-chart .now-line { stroke: #fff; stroke-width: 1.5; stroke-dasharray: 4 4; opacity: 0.8; }
+    .tide-chart .now-dot { fill: #fff; stroke: var(--accent); stroke-width: 4; }
+    .tide-chart .now-label { fill: #fff; font-size: 11px; font-weight: 700; }
+
     .full-list {
       margin-top: 4px;
       background: var(--glass);
@@ -401,11 +427,7 @@
     }
 
     function formatTime(date) {
-      let h = date.getHours();
-      const m = pad(date.getMinutes());
-      const ampm = h >= 12 ? "PM" : "AM";
-      h = h % 12; if (h === 0) h = 12;
-      return { time: h + ":" + m, ampm };
+      return pad(date.getHours()) + ":" + pad(date.getMinutes());
     }
 
     function formatHeight(v) {
@@ -426,10 +448,7 @@
     }
 
     function formatAsOf(date) {
-      return date.toLocaleTimeString(undefined, {
-        hour: "numeric",
-        minute: "2-digit",
-      });
+      return formatTime(date);
     }
 
     function relativeFromNow(date) {
@@ -530,7 +549,7 @@
         const f = formatTime(tide.date);
         return '<div class="card ' + kind + '" data-kind="' + kind + '" data-state="value">' +
           '<div class="label"><span class="dot"></span>' + label + '</div>' +
-          '<div class="time">' + f.time + '<span class="ampm">' + f.ampm + '</span></div>' +
+          '<div class="time">' + f + '</div>' +
           '<div class="height">' + formatHeight(tide.height) + '</div>' +
           '<div class="rel">' + relativeFromNow(tide.date) + '</div></div>';
       }
@@ -564,7 +583,7 @@
         const isPast = t.date <= now;
         referenceRows += '<div class="tide-row' + (isPast ? ' past' : '') + '" data-kind="' + kind + '">' +
           '<span class="badge ' + kind + '">' + word + '</span>' +
-          '<span class="r-time">' + f.time + ' ' + f.ampm + '</span>' +
+          '<span class="r-time">' + f + '</span>' +
           '<span class="r-height">' + formatHeight(t.height) + '</span>' +
           (isPast ? '<span class="r-status">Passed</span>' : '') +
         '</div>';
@@ -576,6 +595,49 @@
         '</div>' +
         '<section class="full-list" aria-label="Today’s tide reference"><h2>Today’s tide reference</h2>' +
         referenceRows + '</section>';
+    }
+
+    function renderTideChart(tides, now, current) {
+      if (tides.length < 2) return '';
+
+      const width = 520, height = 190, left = 32, right = 14, top = 18, bottom = 28;
+      const plotWidth = width - left - right, plotHeight = height - top - bottom;
+      const heights = tides.map(t => parseFloat(t.height));
+      const min = Math.min(...heights), max = Math.max(...heights);
+      const padding = Math.max(1, (max - min) * 0.16);
+      const x = date => left + ((date.getHours() * 60 + date.getMinutes()) / 1440) * plotWidth;
+      const y = value => top + ((max + padding - value) / (max - min + padding * 2)) * plotHeight;
+
+      let path = 'M ' + x(tides[0].date).toFixed(1) + ' ' + y(parseFloat(tides[0].height)).toFixed(1);
+      for (let i = 1; i < tides.length; i++) {
+        const previous = tides[i - 1], tide = tides[i];
+        const x1 = x(previous.date), x2 = x(tide.date);
+        const y1 = y(parseFloat(previous.height)), y2 = y(parseFloat(tide.height));
+        const control = (x2 - x1) / 2;
+        path += ' C ' + (x1 + control).toFixed(1) + ' ' + y1.toFixed(1) +
+          ', ' + (x2 - control).toFixed(1) + ' ' + y2.toFixed(1) +
+          ', ' + x2.toFixed(1) + ' ' + y2.toFixed(1);
+      }
+
+      const tickHours = [0, 6, 12, 18, 24];
+      const ticks = tickHours.map(hour => {
+        const tickX = left + (hour / 24) * plotWidth;
+        const label = pad(hour % 24) + ':00';
+        return '<line class="grid-line" x1="' + tickX + '" y1="' + top + '" x2="' + tickX + '" y2="' + (top + plotHeight) + '"></line>' +
+          '<text class="axis-label" x="' + tickX + '" y="' + (height - 7) + '" text-anchor="middle">' + label + '</text>';
+      }).join('');
+
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const nowX = left + (nowMinutes / 1440) * plotWidth;
+      const marker = current
+        ? '<g class="now-marker"><line class="now-line" x1="' + nowX.toFixed(1) + '" y1="' + top + '" x2="' + nowX.toFixed(1) + '" y2="' + (top + plotHeight) + '"></line>' +
+          '<circle class="now-dot" cx="' + nowX.toFixed(1) + '" cy="' + y(current.height).toFixed(1) + '" r="6"></circle>' +
+          '<text class="now-label" x="' + nowX.toFixed(1) + '" y="12" text-anchor="middle">NOW</text></g>'
+        : '';
+
+      return '<section class="tide-chart" id="todayTideChart" aria-label="Today’s tide curve">' +
+        '<h2>Today’s tide curve</h2><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Tide height over 24 hours">' +
+        ticks + '<path class="curve" d="' + path + '"></path>' + marker + '</svg></section>';
     }
 
     function renderFullView(tides, ymd) {
