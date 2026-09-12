@@ -15,6 +15,12 @@ const FIXTURES = {
     { t: '2026-06-27 18:20', v: '11.171', type: 'H' },
     { t: '2026-06-27 23:25', v: '7.976', type: 'L' },
   ],
+  '20280229': [
+    { t: '2028-02-29 01:24', v: '9.1', type: 'H' },
+    { t: '2028-02-29 08:11', v: '1.2', type: 'L' },
+    { t: '2028-02-29 14:46', v: '8.8', type: 'H' },
+    { t: '2028-02-29 21:06', v: '0.4', type: 'L' },
+  ],
 };
 
 const STATION_META = {
@@ -126,17 +132,25 @@ test.describe('Tide Tracker', () => {
 
     await page.locator('#nextDay').click();
 
-    // Not today: pill hidden, full list shown with every hi/lo moment.
+    // Non-today: show the daylight low window and a simulated curve for every tide.
     await expect(page.locator('#todayPill')).toBeHidden();
-    await expect(page.locator('.low-outlook')).toBeVisible();
-    // A non-today view foregrounds the low-tide time and height.
-    await expect(page.locator('.low-outlook h2')).toContainText('Low tides');
-    await expect(page.locator('.low-outlook h2')).toContainText('June 27, 2026');
-    await expect(page.locator('.low-event')).toHaveCount(2);
-    await expect(page.locator('.low-event').nth(0)).toContainText('10:06');
-    await expect(page.locator('.low-event').nth(0)).toContainText('-1.3 ft');
-    await expect(page.locator('.low-event').nth(1)).toContainText('23:25');
-    await expect(page.locator('.full-list')).toContainText('High-tide reference');
+    const summary = page.locator('.daylight-summary');
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('Daylight low tide');
+    await expect(summary).toContainText('09:00');
+    await expect(summary.locator('.daylight-low')).toHaveCount(1);
+    await expect(summary.locator('.daylight-low')).toContainText('10:06');
+    await expect(summary.locator('.daylight-low')).toContainText('-1.3 ft');
+
+    const chart = page.locator('#forecastTideChart');
+    await expect(chart).toBeVisible();
+    await expect(chart.locator('.forecast-one-foot')).toHaveCount(1);
+    await expect(chart.locator('.time-guide')).toHaveCount(2);
+    await expect(chart).toContainText('09:00');
+    await expect(chart).toContainText('Sunset');
+    await expect(chart.locator('.forecast-event')).toHaveCount(4);
+    await expect(chart).toContainText('23:25');
+    await expect(page.locator('.full-list')).toContainText('All tide times');
 
     // "Back to today" returns to the card view.
     await expect(page.locator('#jumpToday')).toBeVisible();
@@ -144,6 +158,21 @@ test.describe('Tide Tracker', () => {
     await expect(page.locator('#todayPill')).toBeVisible();
     await expect(page.locator('.card')).toHaveCount(2);
     await expect(page.locator('#todayTideChart')).toBeVisible();
+  });
+
+
+  test('uses the dedicated leap-day sunset lookup', async ({ page }) => {
+    await mockNoaa(page);
+    await page.clock.setFixedTime(fixedNow('13:00:00'));
+    await page.goto('/index.html');
+
+    await page.locator('#datePicker').fill('2028-02-29');
+    await page.locator('#datePicker').dispatchEvent('change');
+
+    const summary = page.locator('.daylight-summary');
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('sunset 17:52');
+    await expect(page.locator('#forecastTideChart')).toBeVisible();
   });
 
   test('previous-day button works and is symmetric', async ({ page }) => {
