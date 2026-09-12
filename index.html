@@ -583,7 +583,7 @@
       }));
     }
 
-    function renderTodayView(tides, contextTides) {
+    function renderTodayView(tides, contextTides, hourlyHeights) {
       const now = new Date();
       const nextHigh = tides.find(t => t.type === 'H' && t.date > now);
       const nextLow = tides.find(t => t.type === 'L' && t.date > now);
@@ -646,7 +646,7 @@
         ? '<section class="trend-strip"><span class="trend-status">' + current.trend + '</span>' + nextTurns + '</section>'
         : '';
 
-      content.innerHTML = trendHtml + renderTideChart(tides, now, current, contextTides) + '<div class="cards">' +
+      content.innerHTML = trendHtml + renderTideChart(tides, now, current, contextTides, hourlyHeights) + '<div class="cards">' +
         cardHtml('low', 'Next Low Tide', nextLow) +
         cardHtml('high', 'Next High Tide', nextHigh) +
         '</div>' +
@@ -654,7 +654,7 @@
         referenceRows + '</details>';
     }
 
-    function renderTideChart(tides, now, current, contextTides) {
+    function renderTideChart(tides, now, current, contextTides, hourlyHeights) {
       if (tides.length < 2) return '';
 
       const width = 520, height = 190, left = 32, right = 14, top = 18, bottom = 28;
@@ -663,9 +663,13 @@
       const dayStart = parseApiTime(selectedYmd + ' 00:00');
       const dayEnd = new Date(dayStart);
       dayEnd.setDate(dayEnd.getDate() + 1);
-      const before = contextTides.filter(t => t.date < dayStart).at(-1);
-      const after = contextTides.find(t => t.date >= dayEnd);
-      const curveTides = [before, ...tides, after].filter(Boolean);
+      const curveStart = new Date(dayStart);
+      const curveEnd = new Date(dayEnd);
+      curveStart.setHours(curveStart.getHours() - 1);
+      curveEnd.setHours(curveEnd.getHours() + 1);
+      const curveTides = [...hourlyHeights, ...contextTides]
+        .filter(t => t.date >= curveStart && t.date <= curveEnd)
+        .sort((a, b) => a.date - b.date);
       const heights = curveTides.map(t => parseFloat(t.height));
       const min = Math.min(...heights), max = Math.max(...heights);
       const padding = Math.max(1, (max - min) * 0.16);
@@ -674,13 +678,8 @@
 
       let path = 'M ' + x(curveTides[0].date).toFixed(1) + ' ' + y(parseFloat(curveTides[0].height)).toFixed(1);
       for (let i = 1; i < curveTides.length; i++) {
-        const previous = curveTides[i - 1], tide = curveTides[i];
-        const x1 = x(previous.date), x2 = x(tide.date);
-        const y1 = y(parseFloat(previous.height)), y2 = y(parseFloat(tide.height));
-        const control = (x2 - x1) / 2;
-        path += ' C ' + (x1 + control).toFixed(1) + ' ' + y1.toFixed(1) +
-          ', ' + (x2 - control).toFixed(1) + ' ' + y2.toFixed(1) +
-          ', ' + x2.toFixed(1) + ' ' + y2.toFixed(1);
+        const tide = curveTides[i];
+        path += ' L ' + x(tide.date).toFixed(1) + ' ' + y(parseFloat(tide.height)).toFixed(1);
       }
 
       const tickHours = [0, 6, 12, 18, 24];
@@ -719,6 +718,26 @@
       return '<section class="tide-chart" id="todayTideChart" aria-label="Today’s tide curve">' +
         '<h2>Today’s tide curve</h2><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Tide height over 24 hours">' +
         ticks + '<path class="curve" d="' + path + '"></path>' + turns + marker + '</svg></section>';
+    }
+
+    async function fetchHourlyHeights(ymd) {
+      const selectedDay = parseApiTime(ymd + ' 12:00');
+      const previousDay = new Date(selectedDay);
+      const nextDay = new Date(selectedDay);
+      previousDay.setDate(previousDay.getDate() - 1);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const url = API_BASE +
+        '?product=predictions&application=tide-tracker&datum=MLLW&station=' + STATION_ID +
+        '&time_zone=lst_ldt&units=english&interval=h&format=json' +
+        '&begin_date=' + ymdCompact(toYMD(previousDay)) + '&end_date=' + ymdCompact(toYMD(nextDay));
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('NOAA API returned ' + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || 'API error');
+      return (data.predictions || []).map(p => ({
+        date: parseApiTime(p.t),
+        height: p.v,
+      }));
     }
 
     function renderFullView(tides, ymd) {
@@ -765,9 +784,12 @@
 
       setStatus('Loading tide data…');
       try {
-        const contextTides = await fetchTides(selected);
+        const [contextTides, hourlyHeights] = await Promise.all([
+          fetchTides(selected),
+          fetchHourlyHeights(selected),
+        ]);
         const tides = contextTides.filter(t => toYMD(t.date) === selected);
-        if (isToday) renderTodayView(tides, contextTides);
+        if (isToday) renderTodayView(tides, contextTides, hourlyHeights);
         else renderFullView(tides, selected);
       } catch (e) {
         setStatus('Could not load tide data: ' + e.message, true);
