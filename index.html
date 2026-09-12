@@ -829,10 +829,13 @@
     function simulatedTidePoints(tides, ymd) {
       if (tides.length < 2) return tides;
       const nodes = tides.map(t => ({ date: t.date, height: +t.height }));
-      const firstGap = nodes[1].date - nodes[0].date;
-      const lastGap = nodes.at(-1).date - nodes.at(-2).date;
-      nodes.unshift({ date: new Date(nodes[0].date - firstGap), height: nodes[1].height });
-      nodes.push({ date: new Date(nodes.at(-1).date + lastGap), height: nodes.at(-2).height });
+      const first = nodes[0], second = nodes[1];
+      const penultimate = nodes.at(-2), last = nodes.at(-1);
+      const firstGap = second.date - first.date;
+      const lastGap = last.date - penultimate.date;
+      // Extend the first/last half-wave using numeric timestamps, never Date + number.
+      nodes.unshift({ date: new Date(first.date.getTime() - firstGap), height: second.height });
+      nodes.push({ date: new Date(last.date.getTime() + lastGap), height: penultimate.height });
 
       function heightAt(date) {
         let i = 0;
