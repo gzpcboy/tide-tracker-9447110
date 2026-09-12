@@ -570,12 +570,14 @@
       } catch (e) { }
     }
 
-    async function fetchTides(ymd) {
+    async function fetchTides(ymd, includeContext = false) {
       const selectedDay = parseApiTime(ymd + ' 12:00');
       const previousDay = new Date(selectedDay);
       const nextDay = new Date(selectedDay);
-      previousDay.setDate(previousDay.getDate() - 1);
-      nextDay.setDate(nextDay.getDate() + 1);
+      if (includeContext) {
+        previousDay.setDate(previousDay.getDate() - 1);
+        nextDay.setDate(nextDay.getDate() + 1);
+      }
       const url = API_BASE +
         '?product=predictions&application=tide-tracker&datum=MLLW&station=' + STATION_ID +
         '&time_zone=lst_ldt&units=english&interval=hilo&format=json' +
@@ -792,13 +794,17 @@
 
       setStatus('Loading tide data…');
       try {
-        const [contextTides, hourlyHeights] = await Promise.all([
-          fetchTides(selected),
-          fetchHourlyHeights(selected),
-        ]);
-        const tides = contextTides.filter(t => toYMD(t.date) === selected);
-        if (isToday) renderTodayView(tides, contextTides, hourlyHeights);
-        else renderFullView(tides, selected);
+        if (isToday) {
+          const [contextTides, hourlyHeights] = await Promise.all([
+            fetchTides(selected, true),
+            fetchHourlyHeights(selected),
+          ]);
+          const tides = contextTides.filter(t => toYMD(t.date) === selected);
+          renderTodayView(tides, contextTides, hourlyHeights);
+        } else {
+          const tides = await fetchTides(selected);
+          renderFullView(tides, selected);
+        }
       } catch (e) {
         setStatus('Could not load tide data: ' + e.message, true);
       }
