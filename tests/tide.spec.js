@@ -63,15 +63,8 @@ test.describe('Tide Tracker', () => {
 
     await expect(page.locator('#todayPill')).toBeVisible();
 
-    const currentCard = page.locator('#currentTideCard');
     const lowCard = page.locator('.card[data-kind="low"]');
     const highCard = page.locator('.card[data-kind="high"]');
-
-    await expect(currentCard).toHaveAttribute('data-state', 'value');
-    await expect(currentCard).toContainText('Current tide');
-    await expect(currentCard).toContainText('3.6 ft');
-    await expect(currentCard).toContainText('Rising');
-    await expect(currentCard).toContainText('toward high tide');
 
     await expect(lowCard).toHaveAttribute('data-state', 'value');
     await expect(highCard).toHaveAttribute('data-state', 'value');
@@ -83,6 +76,7 @@ test.describe('Tide Tracker', () => {
     const chart = page.locator('#todayTideChart');
     await expect(chart).toBeVisible();
     await expect(chart.locator('.now-marker')).toBeVisible();
+    await expect(chart.locator('.now-marker')).toContainText('3.6 ft');
 
     const referenceRows = page.locator('.full-list .tide-row');
     await expect(referenceRows).toHaveCount(4);
@@ -111,7 +105,7 @@ test.describe('Tide Tracker', () => {
     await page.clock.setFixedTime(fixedNow('23:00:00'));
     await page.goto('/index.html');
 
-    await expect(page.locator('#currentTideCard')).toHaveAttribute('data-state', 'none');
+    await expect(page.locator('#todayTideChart')).toBeVisible();
     await expect(page.locator('.card[data-kind="low"]')).toHaveAttribute('data-state', 'none');
     await expect(page.locator('.card[data-kind="high"]')).toHaveAttribute('data-state', 'none');
   });
@@ -143,7 +137,7 @@ test.describe('Tide Tracker', () => {
     await page.locator('#jumpToday').click();
     await expect(page.locator('#todayPill')).toBeVisible();
     await expect(page.locator('.card')).toHaveCount(3);
-    await expect(page.locator('#currentTideCard')).toBeVisible();
+    await expect(page.locator('#todayTideChart')).toBeVisible();
   });
 
   test('previous-day button works and is symmetric', async ({ page }) => {
