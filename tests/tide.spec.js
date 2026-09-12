@@ -149,6 +149,7 @@ test.describe('Tide Tracker', () => {
     await expect(chart).toContainText('09:00');
     await expect(chart).toContainText('Sunset');
     await expect(chart.locator('.forecast-event')).toHaveCount(4);
+    await expect(chart.locator('.forecast-curve')).toHaveAttribute('d', /^(?!.*NaN).*L /);
     await expect(chart).toContainText('23:25');
     await expect(page.locator('.full-list')).toContainText('All tide times');
 
