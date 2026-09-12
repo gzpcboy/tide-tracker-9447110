@@ -86,7 +86,7 @@ test.describe('Tide Tracker', () => {
     await expect(page.locator('.full-list .tide-row.past')).toHaveCount(2);
   });
 
-  test('shows dash when there is no more high tide today', async ({ page }) => {
+  test('continues with tomorrow’s next high after today’s last high', async ({ page }) => {
     await mockNoaa(page);
     // 18:00 is after the last high (17:40) but before the last low (22:33).
     await page.clock.setFixedTime(fixedNow('18:00:00'));
@@ -95,22 +95,28 @@ test.describe('Tide Tracker', () => {
     const lowCard = page.locator('.card[data-kind="low"]');
     const highCard = page.locator('.card[data-kind="high"]');
 
-    await expect(highCard).toHaveAttribute('data-state', 'none');
-    await expect(highCard.locator('.none')).toHaveText('–');
-    await expect(highCard).toContainText('No more high tide today');
+    await expect(highCard).toHaveAttribute('data-state', 'value');
+    await expect(highCard).toContainText('Tomorrow');
+    await expect(highCard.locator('.time')).toHaveText('02:43');
 
     await expect(lowCard).toHaveAttribute('data-state', 'value');
     await expect(lowCard.locator('.time')).toHaveText('22:33');
   });
 
-  test('shows dash for both when no tides remain today', async ({ page }) => {
+  test('continues with tomorrow’s tides after today has ended', async ({ page }) => {
     await mockNoaa(page);
     await page.clock.setFixedTime(fixedNow('23:00:00'));
     await page.goto('/index.html');
 
     await expect(page.locator('#todayTideChart')).toBeVisible();
-    await expect(page.locator('.card[data-kind="low"]')).toHaveAttribute('data-state', 'none');
-    await expect(page.locator('.card[data-kind="high"]')).toHaveAttribute('data-state', 'none');
+    const lowCard = page.locator('.card[data-kind="low"]');
+    const highCard = page.locator('.card[data-kind="high"]');
+    await expect(lowCard).toHaveAttribute('data-state', 'value');
+    await expect(highCard).toHaveAttribute('data-state', 'value');
+    await expect(lowCard.locator('.time')).toHaveText('10:06');
+    await expect(highCard.locator('.time')).toHaveText('02:43');
+    await expect(lowCard).toContainText('Tomorrow');
+    await expect(highCard).toContainText('Tomorrow');
   });
 
   test('navigating to another day shows all tide moments', async ({ page }) => {
