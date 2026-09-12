@@ -119,24 +119,21 @@ test.describe('Tide Tracker', () => {
 
     // Not today: pill hidden, full list shown with every hi/lo moment.
     await expect(page.locator('#todayPill')).toBeHidden();
-    await expect(page.locator('.full-list')).toBeVisible();
-    // Heading is followed by the formatted date of the viewed day (2026-06-27).
-    await expect(page.locator('.full-list h2')).toContainText('All tides for');
-    await expect(page.locator('.full-list h2')).toContainText('June 27, 2026');
-    await expect(page.locator('.tide-row')).toHaveCount(4);
-
-    const rows = page.locator('.tide-row');
-    await expect(rows.nth(0)).toContainText('High');
-    await expect(rows.nth(0)).toContainText('02:43');
-    await expect(rows.nth(1)).toContainText('Low');
-    await expect(rows.nth(1)).toContainText('10:06');
-    await expect(rows.nth(3)).toContainText('23:25');
+    await expect(page.locator('.low-outlook')).toBeVisible();
+    // A non-today view foregrounds the low-tide time and height.
+    await expect(page.locator('.low-outlook h2')).toContainText('Low tides');
+    await expect(page.locator('.low-outlook h2')).toContainText('June 27, 2026');
+    await expect(page.locator('.low-event')).toHaveCount(2);
+    await expect(page.locator('.low-event').nth(0)).toContainText('10:06');
+    await expect(page.locator('.low-event').nth(0)).toContainText('-1.3 ft');
+    await expect(page.locator('.low-event').nth(1)).toContainText('23:25');
+    await expect(page.locator('.full-list')).toContainText('High-tide reference');
 
     // "Back to today" returns to the card view.
     await expect(page.locator('#jumpToday')).toBeVisible();
     await page.locator('#jumpToday').click();
     await expect(page.locator('#todayPill')).toBeVisible();
-    await expect(page.locator('.card')).toHaveCount(3);
+    await expect(page.locator('.card')).toHaveCount(2);
     await expect(page.locator('#todayTideChart')).toBeVisible();
   });
 
