@@ -211,9 +211,9 @@
       flex-wrap: wrap;
     }
     .hero-card .current-height {
-      font-size: 2.5rem;
-      line-height: 1;
-      font-weight: 800;
+      font-size: 1rem;
+      line-height: 1.2;
+      font-weight: 700;
     }
     .hero-card .trend {
       font-size: 0.98rem;
@@ -270,6 +270,11 @@
     .card .dot { width: 10px; height: 10px; border-radius: 50%; }
     .card.high .dot { background: var(--high); box-shadow: 0 0 10px var(--high); }
     .card.low .dot { background: var(--low); box-shadow: 0 0 10px var(--low); }
+    .card.low {
+      border-color: rgba(251, 191, 36, 0.52);
+      background: linear-gradient(135deg, rgba(251,191,36,0.18), var(--glass));
+    }
+    .card.low .height { color: #ffe19a; font-weight: 800; }
     .card .time {
       font-size: 1.9rem;
       font-weight: 700;
@@ -305,6 +310,12 @@
     .tide-chart .now-line { stroke: #fff; stroke-width: 1.5; stroke-dasharray: 4 4; opacity: 0.8; }
     .tide-chart .now-dot { fill: #fff; stroke: var(--accent); stroke-width: 4; }
     .tide-chart .now-label { fill: #fff; font-size: 11px; font-weight: 700; }
+    .tide-chart .turn-stem { stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.8; }
+    .tide-chart .turn-high { fill: var(--accent); stroke: var(--accent); }
+    .tide-chart .turn-low { fill: var(--low); stroke: var(--low); }
+    .tide-chart .turn-title { font-size: 11px; font-weight: 700; }
+    .tide-chart .turn-detail { font-size: 11px; font-weight: 600; }
+    .tide-chart .turn-value { font-size: 13px; font-weight: 800; }
 
     .full-list {
       margin-top: 4px;
@@ -558,7 +569,6 @@
         ? '<section class="card hero-card" id="currentTideCard" data-state="value">' +
           '<div class="eyebrow">Current tide</div>' +
           '<div class="current-line">' +
-            '<div class="current-height">' + current.height.toFixed(1) + ' ft</div>' +
             '<div class="trend">' + current.trend + '</div>' +
           '</div>' +
           '<div class="summary">' + current.summary + '</div>' +
@@ -570,7 +580,7 @@
         '</section>'
         : '<section class="card hero-card" id="currentTideCard" data-state="none">' +
           '<div class="eyebrow">Current tide</div>' +
-          '<div class="current-line"><div class="current-height">--</div></div>' +
+          '<div class="current-line"><div class="current-height">No current estimate</div></div>' +
           '<div class="summary">Current tide estimate becomes available once we have both the previous and next tide turn.</div>' +
           '<div class="meta"><span>As of ' + formatAsOf(now) + '</span></div>' +
         '</section>';
@@ -632,12 +642,30 @@
       const marker = current
         ? '<g class="now-marker"><line class="now-line" x1="' + nowX.toFixed(1) + '" y1="' + top + '" x2="' + nowX.toFixed(1) + '" y2="' + (top + plotHeight) + '"></line>' +
           '<circle class="now-dot" cx="' + nowX.toFixed(1) + '" cy="' + y(current.height).toFixed(1) + '" r="6"></circle>' +
-          '<text class="now-label" x="' + nowX.toFixed(1) + '" y="12" text-anchor="middle">NOW</text></g>'
+          '<text class="now-label" x="' + nowX.toFixed(1) + '" y="' + Math.max(12, y(current.height) - 30).toFixed(1) + '" text-anchor="middle">Now</text>' +
+          '<text class="now-label" x="' + nowX.toFixed(1) + '" y="' + Math.max(24, y(current.height) - 17).toFixed(1) + '" text-anchor="middle">' + formatTime(now) + '</text>' +
+          '<text class="now-label" x="' + nowX.toFixed(1) + '" y="' + Math.max(36, y(current.height) - 4).toFixed(1) + '" text-anchor="middle">' + current.height.toFixed(1) + ' ft</text></g>'
         : '';
+
+      const nextHigh = tides.find(t => t.type === 'H' && t.date > now);
+      const nextLow = tides.find(t => t.type === 'L' && t.date > now);
+      function turnLabel(tide, title, kind) {
+        if (!tide) return '';
+        const tx = x(tide.date), ty = y(parseFloat(tide.height));
+        const isHigh = kind === 'high';
+        const stemEnd = isHigh ? Math.min(top + plotHeight - 45, ty + 22) : Math.max(top + 36, ty - 22);
+        const labelY = isHigh ? stemEnd + 12 : stemEnd - 24;
+        return '<g class="turn-label turn-' + kind + '"><line class="turn-stem" x1="' + tx.toFixed(1) + '" y1="' + ty.toFixed(1) + '" x2="' + tx.toFixed(1) + '" y2="' + stemEnd.toFixed(1) + '"></line>' +
+          '<circle cx="' + tx.toFixed(1) + '" cy="' + ty.toFixed(1) + '" r="5"></circle>' +
+          '<text x="' + tx.toFixed(1) + '" y="' + labelY.toFixed(1) + '" text-anchor="middle"><tspan class="turn-title" x="' + tx.toFixed(1) + '">' + title + '</tspan>' +
+          '<tspan class="turn-detail" x="' + tx.toFixed(1) + '" dy="13">' + formatTime(tide.date) + '</tspan>' +
+          '<tspan class="turn-value" x="' + tx.toFixed(1) + '" dy="14">' + formatHeight(tide.height) + '</tspan></text></g>';
+      }
+      const turns = turnLabel(nextHigh, 'High tide', 'high') + turnLabel(nextLow, 'Low tide', 'low');
 
       return '<section class="tide-chart" id="todayTideChart" aria-label="Today’s tide curve">' +
         '<h2>Today’s tide curve</h2><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Tide height over 24 hours">' +
-        ticks + '<path class="curve" d="' + path + '"></path>' + marker + '</svg></section>';
+        ticks + '<path class="curve" d="' + path + '"></path>' + turns + marker + '</svg></section>';
     }
 
     function renderFullView(tides, ymd) {
