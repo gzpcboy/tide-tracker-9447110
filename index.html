@@ -428,6 +428,55 @@
     .cards .card .rel { font-size: 0.72rem; }
     footer.station-footer { margin-top: 8px; }
     footer.station-footer a { font-size: 0.75rem; padding: 6px 10px; }
+    /* Selected-date chart: daylight guides make beach-planning visible at a glance. */
+    .daylight-summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin-bottom: 8px; padding: 10px 12px;
+    }
+    .daylight-summary h2 {
+      padding: 0; font-size: 0.76rem; letter-spacing: 0.65px; white-space: nowrap;
+    }
+    .daylight-summary p { margin-top: 3px; color: var(--muted); font-size: 0.75rem; }
+    .daylight-low-list { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+    .daylight-low {
+      min-width: 70px; padding: 5px 7px; border-radius: 8px;
+      background: rgba(251,191,36,0.14); border: 1px solid rgba(251,191,36,0.35);
+      color: #ffe19a; font-size: 0.72rem; text-align: center;
+    }
+    .daylight-low span, .daylight-low b { display: block; }
+    .daylight-low b { margin-top: 1px; font-size: 0.83rem; }
+    .daylight-empty { color: var(--muted); font-size: 0.73rem; text-align: right; }
+
+    .forecast-chart {
+      margin: 0 0 8px; padding: 6px 2px 0;
+      background: var(--glass); border: 1px solid var(--glass-border); border-radius: 18px;
+      box-shadow: 0 10px 34px rgba(0,0,0,0.28);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .forecast-chart svg { display: block; width: 100%; height: auto; overflow: hidden; }
+    .forecast-curve { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+    .forecast-axis { fill: var(--muted); font-size: 11px; font-weight: 650; }
+    .forecast-one-foot { stroke: #fbbf24; stroke-width: 1.25; stroke-dasharray: 4 4; opacity: .82; }
+    .forecast-one-foot-label { fill: #ffe19a; font-size: 11px; font-weight: 800; }
+    .time-guide line { stroke: rgba(234,246,255,.62); stroke-width: 1.2; stroke-dasharray: 4 4; }
+    .time-guide text { fill: var(--muted); font-size: 10px; font-weight: 700; }
+    .forecast-event path { stroke: rgba(168,198,221,.7); stroke-width: 1.2; }
+    .forecast-event circle { fill: #a8c6dd; stroke: #09243a; stroke-width: 2; }
+    .forecast-event rect { fill: #102c40; }
+    .forecast-event-kind { fill: #a8c6dd; font-size: 10px; }
+    .forecast-event-time { fill: #eaf6ff; font-size: 15px; font-weight: 750; }
+    .forecast-event-height { fill: #a8c6dd; font-size: 13px; font-weight: 800; }
+    .forecast-event[data-kind="low"] path { stroke: rgba(251,191,36,.7); }
+    .forecast-event[data-kind="low"] circle { fill: #fbbf24; }
+    .forecast-event[data-kind="low"] rect { fill: #3b321b; }
+    .forecast-event[data-kind="low"] .forecast-event-kind,
+    .forecast-event[data-kind="low"] .forecast-event-height { fill: #fbbf24; }
+    @media (max-width: 420px) {
+      .daylight-summary { align-items: flex-start; }
+      .daylight-low-list { max-width: 52%; }
+      .daylight-empty { max-width: 170px; }
+    }
+
   </style>
 </head>
 <body>
@@ -471,6 +520,10 @@
     const CURVE_TIME_OFFSET_MINUTES = -1; // Measured against Station 9447110 over 90 days.
     const API_BASE = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
     const MD_API = "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/" + STATION_ID + ".json";
+
+    // Seattle day-of-year average sunset times, local clock, minutes after midnight.
+    // One value is stored for every calendar day, including February 29.
+    const SEA_SUNSET_MINUTES = [987, 988, 989, 990, 991, 992, 993, 994, 995, 996, 998, 999, 1000, 1001, 1003, 1004, 1006, 1007, 1008, 1010, 1011, 1013, 1014, 1016, 1017, 1019, 1020, 1022, 1023, 1025, 1026, 1028, 1030, 1031, 1033, 1034, 1036, 1038, 1039, 1041, 1042, 1044, 1046, 1047, 1049, 1050, 1052, 1054, 1055, 1057, 1058, 1060, 1062, 1063, 1065, 1066, 1068, 1069, 1071, 1072, 1074, 1075, 1077, 1078, 1080, 1081, 1083, 1144, 1146, 1147, 1149, 1150, 1152, 1153, 1155, 1156, 1158, 1159, 1160, 1162, 1163, 1165, 1166, 1168, 1169, 1170, 1172, 1173, 1175, 1176, 1177, 1179, 1180, 1182, 1183, 1184, 1186, 1187, 1188, 1190, 1191, 1193, 1194, 1195, 1197, 1198, 1200, 1201, 1202, 1204, 1205, 1207, 1208, 1209, 1211, 1212, 1214, 1215, 1216, 1218, 1219, 1220, 1222, 1223, 1225, 1226, 1227, 1229, 1230, 1231, 1233, 1234, 1235, 1237, 1238, 1239, 1241, 1242, 1243, 1244, 1245, 1247, 1248, 1249, 1250, 1251, 1252, 1253, 1254, 1256, 1257, 1258, 1258, 1259, 1260, 1261, 1262, 1263, 1264, 1264, 1265, 1266, 1266, 1267, 1267, 1268, 1268, 1269, 1269, 1270, 1270, 1270, 1271, 1271, 1271, 1271, 1271, 1271, 1271, 1271, 1271, 1271, 1271, 1270, 1270, 1270, 1269, 1269, 1269, 1268, 1268, 1267, 1266, 1266, 1265, 1264, 1263, 1263, 1262, 1261, 1260, 1259, 1258, 1257, 1256, 1255, 1254, 1252, 1251, 1250, 1249, 1247, 1246, 1245, 1243, 1242, 1240, 1239, 1237, 1236, 1234, 1233, 1231, 1229, 1228, 1226, 1224, 1223, 1221, 1219, 1217, 1216, 1214, 1212, 1210, 1208, 1206, 1204, 1203, 1201, 1199, 1197, 1195, 1193, 1191, 1189, 1187, 1185, 1183, 1181, 1179, 1177, 1175, 1173, 1171, 1168, 1166, 1164, 1162, 1160, 1158, 1156, 1154, 1152, 1150, 1148, 1146, 1144, 1142, 1139, 1137, 1135, 1133, 1131, 1129, 1127, 1125, 1123, 1121, 1119, 1117, 1115, 1113, 1111, 1109, 1107, 1105, 1104, 1102, 1100, 1098, 1096, 1094, 1092, 1091, 1089, 1087, 1085, 1084, 1082, 1080, 1079, 1077, 1075, 1074, 1072, 1011, 1009, 1008, 1006, 1005, 1004, 1002, 1001, 1000, 998, 997, 996, 995, 994, 993, 991, 990, 989, 989, 988, 987, 986, 985, 984, 984, 983, 982, 982, 981, 981, 980, 980, 979, 979, 979, 979, 978, 978, 978, 978, 978, 978, 978, 978, 979, 979, 979, 980, 980, 980, 981, 981, 982, 983, 983, 984, 985, 985, 986, 987];
 
     const datePicker = document.getElementById("datePicker");
     const prevBtn = document.getElementById("prevDay");
@@ -750,31 +803,139 @@
       }));
     }
 
+    function dayOfYearIndex(ymd) {
+      const d = parseApiTime(ymd + " 12:00");
+      const start = new Date(d.getFullYear(), 0, 1, 12);
+      let index = Math.floor((d - start) / 86400000);
+      const leap = d.getFullYear() % 4 === 0 && (d.getFullYear() % 100 !== 0 || d.getFullYear() % 400 === 0);
+      if (!leap && d.getMonth() > 1) index += 1;
+      return index;
+    }
+
+    function sunsetMinutesFor(ymd) {
+      return SEA_SUNSET_MINUTES[dayOfYearIndex(ymd)];
+    }
+
+    function dateAtMinute(ymd, minute) {
+      const d = parseApiTime(ymd + " 00:00");
+      d.setMinutes(minute);
+      return d;
+    }
+
+    function formatMinute(minute) {
+      return pad(Math.floor(minute / 60)) + ":" + pad(minute % 60);
+    }
+
+    function simulatedTidePoints(tides, ymd) {
+      if (tides.length < 2) return tides;
+      const nodes = tides.map(t => ({ date: t.date, height: +t.height }));
+      const firstGap = nodes[1].date - nodes[0].date;
+      const lastGap = nodes.at(-1).date - nodes.at(-2).date;
+      nodes.unshift({ date: new Date(nodes[0].date - firstGap), height: nodes[1].height });
+      nodes.push({ date: new Date(nodes.at(-1).date + lastGap), height: nodes.at(-2).height });
+
+      function heightAt(date) {
+        let i = 0;
+        while (i < nodes.length - 2 && date > nodes[i + 1].date) i++;
+        const a = nodes[i], b = nodes[i + 1];
+        const p = clamp((date - a.date) / (b.date - a.date), 0, 1);
+        return a.height + (b.height - a.height) * (1 - Math.cos(Math.PI * p)) / 2;
+      }
+
+      const samples = [];
+      for (let minute = 0; minute <= 1440; minute += 12) {
+        const date = dateAtMinute(ymd, minute);
+        samples.push({ date, height: heightAt(date) });
+      }
+      for (const tide of tides) samples.push({ date: tide.date, height: +tide.height });
+      return samples.sort((a, b) => a.date - b.date);
+    }
+
+    function renderForecastChart(tides, ymd, sunsetMinute) {
+      const width = 400, height = 316, left = 24, right = 24, top = 66, bottom = 228;
+      const dayStart = dateAtMinute(ymd, 0);
+      const dayEnd = dateAtMinute(ymd, 1440);
+      const samples = simulatedTidePoints(tides, ymd);
+      const raw = samples.map(t => +t.height);
+      const padHeight = Math.max(0.8, (Math.max(...raw) - Math.min(...raw)) * 0.10);
+      const min = Math.min(...raw, 1) - padHeight;
+      const max = Math.max(...raw, 1) + padHeight;
+      const x = date => left + (date - dayStart) / (dayEnd - dayStart) * (width - left - right);
+      const y = value => bottom - (value - min) / (max - min) * (bottom - top);
+      const curve = samples.map((t, i) => (i ? "L " : "M ") + x(t.date).toFixed(2) + " " + y(t.height).toFixed(2)).join("");
+      const oneFootY = y(1);
+      const ticks = [0, 6, 12, 18, 24].map(hour => {
+        const tx = x(dateAtMinute(ymd, hour * 60));
+        return '<text class="forecast-axis" x="' + tx + '" y="306" text-anchor="middle">' + pad(hour) + ':00</text>';
+      }).join("");
+
+      function guide(minute, label, anchor) {
+        const gx = x(dateAtMinute(ymd, minute));
+        return '<g class="time-guide"><line x1="' + gx + '" x2="' + gx + '" y1="' + top + '" y2="' + bottom + '"/>' +
+          '<text x="' + gx + '" y="60" text-anchor="' + anchor + '">' + label + '</text></g>';
+      }
+
+      function labels(type, laneY) {
+        const events = tides.filter(t => t.type === type);
+        const labelWidth = 82, gap = 4;
+        const centers = events.map(t => clamp(x(t.date), labelWidth / 2 + 4, width - labelWidth / 2 - 4));
+        for (let i = 1; i < centers.length; i++) centers[i] = Math.max(centers[i], centers[i - 1] + labelWidth + gap);
+        if (centers.length && centers.at(-1) > width - labelWidth / 2 - 4) {
+          centers[centers.length - 1] = width - labelWidth / 2 - 4;
+          for (let i = centers.length - 2; i >= 0; i--) centers[i] = Math.min(centers[i], centers[i + 1] - labelWidth - gap);
+        }
+        const low = type === "L", color = low ? "#fbbf24" : "#a8c6dd";
+        return events.map((t, i) => {
+          const px = x(t.date), py = y(+t.height), cx = centers[i];
+          const lineEndY = low ? laneY : laneY + 47;
+          return '<g class="forecast-event" data-kind="' + (low ? "low" : "high") + '">' +
+            '<path fill="none" d="M ' + px + ' ' + py + ' L ' + cx + ' ' + lineEndY + '"/>' +
+            '<circle cx="' + px + '" cy="' + py + '" r="' + (low ? 5 : 4) + '"/>' +
+            '<rect x="' + (cx - 41) + '" y="' + laneY + '" width="82" height="47" rx="8"/>' +
+            '<text class="forecast-event-kind" x="' + cx + '" y="' + (laneY + 13) + '" text-anchor="middle">' + (low ? "LOW TIDE" : "HIGH TIDE") + '</text>' +
+            '<text class="forecast-event-time" x="' + cx + '" y="' + (laneY + 30) + '" text-anchor="middle">' + formatTime(t.date) + '</text>' +
+            '<text class="forecast-event-height" x="' + cx + '" y="' + (laneY + 44) + '" text-anchor="middle">' + formatHeight(t.height) + '</text></g>';
+        }).join("");
+      }
+
+      return '<section class="forecast-chart" id="forecastTideChart" aria-label="Tide curve with daylight guides">' +
+        '<svg viewBox="0 0 400 316" role="img" aria-label="Tide curve, 1 foot line, 9 AM and sunset">' +
+        '<defs><clipPath id="forecastPlotClip"><rect x="' + left + '" y="' + top + '" width="' + (width - left - right) + '" height="' + (bottom - top) + '"/></clipPath></defs>' +
+        '<line class="forecast-one-foot" x1="' + left + '" x2="' + (width - right) + '" y1="' + oneFootY + '" y2="' + oneFootY + '"/>' +
+        '<text class="forecast-one-foot-label" x="' + (left + 4) + '" y="' + (oneFootY - 5) + '">1 ft</text>' +
+        guide(540, "09:00", "middle") + guide(sunsetMinute, "Sunset " + formatMinute(sunsetMinute), sunsetMinute > 1200 ? "end" : "middle") +
+        '<path class="forecast-curve" clip-path="url(#forecastPlotClip)" d="' + curve + '"/>' +
+        labels("H", 8) + labels("L", 241) + ticks + '</svg></section>';
+    }
+
     function renderFullView(tides, ymd) {
       if (!tides.length) {
         setStatus('No tide predictions available for this date.');
         return;
       }
 
-      const lowTides = tides.filter(t => t.type === 'L');
-      const lowEvents = lowTides.map(t => {
-        return '<article class="low-event">' +
-          '<div class="low-label">Low tide</div>' +
-          '<div class="low-time">' + formatTime(t.date) + '</div>' +
-          '<div class="low-height">' + formatHeight(t.height) + '</div></article>';
-      }).join('');
-
-      const otherRows = tides.filter(t => t.type === 'H').map(t => {
-        return '<div class="tide-row" data-kind="high">' +
-          '<span class="badge high">High</span>' +
+      const sunsetMinute = sunsetMinutesFor(ymd);
+      const daylightStart = dateAtMinute(ymd, 9 * 60);
+      const daylightEnd = dateAtMinute(ymd, sunsetMinute);
+      const daylightLows = tides.filter(t => t.type === 'L' && t.date >= daylightStart && t.date <= daylightEnd);
+      const daylightHtml = daylightLows.length
+        ? daylightLows.map(t => '<div class="daylight-low"><span>' + formatTime(t.date) + '</span><b>' + formatHeight(t.height) + '</b></div>').join('')
+        : '<div class="daylight-empty">No low tide in this daylight window</div>';
+      const referenceRows = tides.map(t => {
+        const kind = t.type === 'H' ? 'high' : 'low';
+        return '<div class="tide-row" data-kind="' + kind + '">' +
+          '<span class="badge ' + kind + '">' + (t.type === 'H' ? 'High' : 'Low') + '</span>' +
           '<span class="r-time">' + formatTime(t.date) + '</span>' +
           '<span class="r-height">' + formatHeight(t.height) + '</span></div>';
       }).join('');
 
-      content.innerHTML = '<section class="low-outlook" aria-label="Low tides for selected date"><h2>Low tides · ' +
-        formatLongDate(ymd) + '</h2><div class="low-events">' + lowEvents + '</div></section>' +
-        '<details class="full-list"><summary>High-tide reference</summary>' + otherRows + '</details>';
+      content.innerHTML = '<section class="daylight-summary low-outlook" aria-label="Daylight low tides">' +
+        '<div><h2>Daylight low tide</h2><p>09:00 – sunset ' + formatMinute(sunsetMinute) + '</p></div>' +
+        '<div class="daylight-low-list">' + daylightHtml + '</div></section>' +
+        renderForecastChart(tides, ymd, sunsetMinute) +
+        '<details class="full-list"><summary>All tide times</summary>' + referenceRows + '</details>';
     }
+
 
     async function render() {
       const selected = datePicker.value;
