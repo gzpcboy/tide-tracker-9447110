@@ -52,6 +52,7 @@ header.title .station{margin-top:4px;color:var(--sub);font-size:.83rem;font-weig
 .tide-chart .now-value{fill:#75f0f2;font-size:23px;font-weight:850}
 .tide-chart .turn-stem{stroke-width:1.5;stroke-dasharray:3 3;opacity:.75}
 .tide-chart .turn-title{font-size:12px;font-weight:800}.tide-chart .turn-detail{font-size:14px;font-weight:700}.tide-chart .turn-value{font-size:17px;font-weight:850}
+.today-window-band{fill:#fff7df}.today-time-guide line{stroke:#708295;stroke-width:1.25;stroke-dasharray:5 5}.today-time-guide.window-start line{stroke:#4c667c}.today-time-guide.window-end line{stroke:#ca8d00}.today-guide-note{fill:var(--ink);font-size:12px;font-weight:850;letter-spacing:.02em}
 .forecast-window-band{fill:#fff7df}.forecast-one-foot{stroke:#dba522;stroke-width:1.3;stroke-dasharray:5 5;opacity:.9}.forecast-one-foot-label{fill:#a46a00;font-size:13px;font-weight:850}
 .time-guide line{stroke:#7c8b98;stroke-width:1.35;stroke-dasharray:5 5}.time-guide.window-start line{stroke:#4c667c}.time-guide.window-end line{stroke:#ca8d00}
 .forecast-guide-note{fill:var(--ink);font-size:12px;font-weight:850;letter-spacing:.02em}
@@ -320,7 +321,7 @@ footer.station-footer{margin-top:16px;text-align:center}footer.station-footer a{
     function renderTideChart(tides, now, current, contextTides, hourlyHeights) {
       if (!hourlyHeights.length) return '';
       // Separate annotation lanes keep current, high and low labels apart.
-      const width = 400, height = 352, left = 24, right = 24, top = 126, bottom = 244;
+      const width = 400, height = 376, left = 24, right = 24, top = 126, bottom = 244;
       const dayStart = parseApiTime(toYMD(now) + ' 00:00');
       const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
       const samples = [...hourlyHeights, ...tides].sort((a,b) => a.date-b.date);
@@ -336,6 +337,15 @@ footer.station-footer{margin-top:16px;text-align:center}footer.station-footer a{
         const tx = left+h/24*(width-left-right);
         return '<line class="grid-line" x1="'+tx+'" x2="'+tx+'" y1="'+top+'" y2="'+bottom+'"/><text class="axis-label" x="'+tx+'" y="344" text-anchor="middle">'+pad(h)+':00</text>';
       }).join('');
+      const ymd = toYMD(now);
+      const sunsetMinute = sunsetMinutesFor(ymd);
+      const windowStartX = x(dateAtMinute(ymd, 540));
+      const windowEndX = x(dateAtMinute(ymd, sunsetMinute));
+      function daylightGuide(minute, kind, label) {
+        const gx = x(dateAtMinute(ymd, minute));
+        return '<g class="today-time-guide '+kind+'"><line x1="'+gx+'" x2="'+gx+'" y1="'+top+'" y2="353"/><text class="today-guide-note" x="'+gx+'" y="370" text-anchor="middle">'+label+'</text></g>';
+      }
+      const daylightGuides = daylightGuide(540, 'window-start', '09:00') + daylightGuide(sunsetMinute, 'window-end', 'SUNSET '+formatMinute(sunsetMinute));
       function labels(type, laneY) {
         const events = tides.filter(t=>t.type===type);
         const labelWidth = 82, gap = 4;
@@ -371,9 +381,10 @@ footer.station-footer{margin-top:16px;text-align:center}footer.station-footer a{
           '<circle class="now-dot" cx="'+px+'" cy="'+py+'" r="6"/></g>';
       }
       return '<section class="tide-chart" id="todayTideChart" aria-label="Today’s tide curve">'+
-        '<svg viewBox="0 0 400 352" role="img" aria-label="Tide predictions, current time, and all high and low tides">'+
+        '<svg viewBox="0 0 400 376" role="img" aria-label="Tide predictions, current time, and all high and low tides">'+
         '<defs><clipPath id="tidePlotClip"><rect x="'+left+'" y="'+(top-8)+'" width="'+(width-left-right)+'" height="'+(bottom-top+16)+'"/></clipPath></defs>'+
-        ticks+'<path class="curve" clip-path="url(#tidePlotClip)" d="'+path+'"/>'+labels('H',62)+labels('L',266)+marker+'</svg></section>';
+        '<rect class="today-window-band" x="'+windowStartX+'" y="'+top+'" width="'+(windowEndX-windowStartX)+'" height="'+(bottom-top)+'"/>'+
+        daylightGuides+ticks+'<path class="curve" clip-path="url(#tidePlotClip)" d="'+path+'"/>'+labels('H',62)+labels('L',266)+marker+'</svg></section>';
     }
 
     async function fetchHourlyHeights(ymd) {
