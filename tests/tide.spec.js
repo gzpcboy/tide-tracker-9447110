@@ -86,6 +86,9 @@ test.describe('Tide Tracker', () => {
     await expect(chart).toBeVisible();
     await expect(chart.locator('.now-marker')).toBeVisible();
     await expect(chart.locator('.now-marker')).toContainText('ft');
+    await expect(chart.locator('.today-time-guide')).toHaveCount(2);
+    await expect(chart).toContainText('09:00');
+    await expect(chart).toContainText('SUNSET');
 
     const referenceRows = page.locator('.full-list .tide-row');
     await expect(referenceRows).toHaveCount(4);
